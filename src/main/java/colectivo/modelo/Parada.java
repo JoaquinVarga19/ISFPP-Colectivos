@@ -13,7 +13,7 @@ import java.util.Objects;
 public class Parada {
 
     /*codigo/id de la parada el cual es unico*/
-    private String codigo;
+    private int codigo;
 
     /*direccion de la parada*/
     private String direccion;
@@ -47,7 +47,7 @@ public class Parada {
      * @param latitud latitud de la parada
      * @param longitud longitud de la parada
      */
-    public Parada(String codigo, String direccion, double latitud, double longitud) {
+    public Parada(int codigo, String direccion, double latitud, double longitud) {
         super();
         this.codigo = codigo;
         this.direccion = direccion;
@@ -77,7 +77,7 @@ public class Parada {
      * Obtiene el codigo de la parada
      * @return el codigo/id de la parada
      */
-    public String getCodigo() {
+    public int getCodigo() {
         return codigo;
     }
 
@@ -85,7 +85,7 @@ public class Parada {
      * Establece el codigo de la parada
      * @param codigo el codigo/id de la parada
      */
-    public void setCodigo(String codigo) {
+    public void setCodigo(int codigo) {
         this.codigo = codigo;
     }
 
