@@ -179,7 +179,7 @@ public class ParadaDAOArchivo implements ParadaDAO {
      */
     private void escribirEnArchivo() {
         LOGGER.info("Guardando cambios en el archivo: " + rutaArchivo);
-        try (PrintWriter pw = new PrintWriter(new FileWriter("src/main/resources" + rutaArchivo))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter("src/main/resources/" + rutaArchivo))) {
 
             for (Parada p : paradasMap.values()) {
                 String linea = String.format("%d;%s;%s;%s\n",
