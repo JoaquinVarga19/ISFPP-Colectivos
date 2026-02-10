@@ -53,14 +53,14 @@ public class ParadaDAOArchivo implements ParadaDAO {
             prop.load(imput);
 
             /*Obtiene la ruta del archivo de paradas desde las propiedades cargadas*/
-            this.rutaArchivo = prop.getProperty("paradas");
+            this.rutaArchivo = prop.getProperty("parada");
 
             if ( this.rutaArchivo == null) {
                 LOGGER.fatal("Error: No se pudo encontrar la clave 'parada' en el archivo config.properties");
             }
 
-        } catch (IOException ex) {
-            LOGGER.fatal("Error: No se pudo leer el archivo config.properties en ParadaDAO", ex);
+        } catch (IOException e) {
+            LOGGER.fatal("Error: No se pudo leer el archivo config.properties en ParadaDAO", e);
         }
 
         this.paradasMap = new LinkedHashMap<>();

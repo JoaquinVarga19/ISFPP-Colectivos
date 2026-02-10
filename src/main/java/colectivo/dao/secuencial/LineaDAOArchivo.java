@@ -38,7 +38,7 @@ public class LineaDAOArchivo implements LineaDAO {
     /**
      * Mapa que almacena las paradas disponibles con su codigo como clave y al objeto paradas
      */
-    private final Map<Integer, Parada> paradasDisponibles;
+    private Map<Integer, Parada> paradasDisponibles;
 
     /**
      * Mapa que almacena las lineas con su codigo como clave y al objeto lineas
@@ -60,29 +60,28 @@ public class LineaDAOArchivo implements LineaDAO {
      * para la gestión de lineas en archivos.
      */
     public LineaDAOArchivo() {
-        LOGGER.info("Inicializando LineaDAOArchivo...");
         Properties prop = new Properties();
         try (InputStream imput = getClass().getClassLoader().getResourceAsStream("config.properties")) {
             if (imput == null) {
                 LOGGER.fatal("No se pudo encontrar el archivo config.properties en src");
-                throw new IOException("No se pudo encontrar el archivo config.properties en src");
+                throw new IOException("No se encontro el archivo");
             }
 
             /*Carga las propiedades desde el archivo de configuración*/
             prop.load(imput);
 
             /*Obtiene la ruta del archivo de lineas desde las propiedades cargadas*/
-            this.rutaArchivo = prop.getProperty("lineas");
-            this.rutaArchivoFrecuencias = prop.getProperty("frecuencias");
+            this.rutaArchivo = prop.getProperty("linea");
+            this.rutaArchivoFrecuencias = prop.getProperty("frecuencia");
 
             if (this.rutaArchivo == null || this.rutaArchivoFrecuencias == null) {
-                LOGGER.fatal("Error: No se pudieron encontrar las claves 'lineas' y 'frecuencias' " +
+                LOGGER.fatal("Error: No se pudieron encontrar las claves 'linea' y 'frecuencia' " +
                         "en el archivo config.properties");
             }
 
 
-        } catch (IOException ex) {
-            LOGGER.error("Error al cargar el archivo de configuración: ", ex);
+        } catch (IOException e) {
+            LOGGER.error("Error: No se pudo leer el archivo config.properties en LineaDAO", e);
         }
 
         this.paradasDisponibles = cargarParadas();
@@ -165,11 +164,9 @@ public class LineaDAOArchivo implements LineaDAO {
             return paradaDAO.buscarTodos();
         } catch (Exception e) {
             LOGGER.error("Error al obtener ParadaDAO desde la Factory en LineaDAO.", e);
+            return Collections.emptyMap();
         }
-        return Collections.emptyMap();
     }
-
-
 
     /**
      * Lee las lineas desde el archivo especificado por la ruta
@@ -200,7 +197,7 @@ public class LineaDAOArchivo implements LineaDAO {
                 if (lineaTexto.trim().isEmpty()) {
                     continue;
                 }
-                String[] partes = lineaTexto.split(",");
+                String[] partes = lineaTexto.split(";");
                 String codigo = partes[0].trim();
                 String nombre = partes[1].trim();
                 Linea lineaObj = new Linea(codigo, nombre);
