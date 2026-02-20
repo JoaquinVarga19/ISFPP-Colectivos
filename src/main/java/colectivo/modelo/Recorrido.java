@@ -45,6 +45,13 @@ public class Recorrido {
     }
 
     /**
+     * Constructor vacio de recorrido, con la duracion calculada a partir de la hora de salida y llegada
+     */
+    public Recorrido() {
+
+    }
+
+    /**
      * Obtiene la linea que hace el recorrido
      * @return la linea que hace el recorrido
      */
