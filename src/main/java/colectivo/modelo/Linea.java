@@ -140,6 +140,21 @@ public class Linea {
     }
 
     /**
+     * Obtiene los horarios de la linea para un dia de la semana determinado
+     * @param diaBuscado el dia de la semana para el cual se desean obtener los horarios (1-7)
+     * @return la lista de horarios de la linea para el dia
+     */
+    public List<LocalTime> obtenerHorariosPorDia(int diaBuscado) {
+        List<LocalTime> horarios = new ArrayList<>();
+        for (Frecuencia frecuencia : frecuencias) {
+            if (frecuencia.getDiaSemana() == diaBuscado) {
+                horarios.add(frecuencia.getHora());
+            }
+        }
+        return horarios;
+    }
+
+    /**
      * Clase interna dentro de la clase Linea que representa con que frecuencia
      * para una linea por una o mas paradas en dias y horarios determinados
      */

@@ -32,4 +32,64 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
         List<List<Recorrido>> soluciones = new ArrayList<>();
         return soluciones;
     }
+
+    /**
+     * Clase interna que representa un nodo en el algoritmo de Dijkstra, con una parada y el tiempo acumulado para
+     * llegar a esa parada.
+     * Se declaro inner class por ser una clase que solo se va a usar dentro de la clase CalculoDijkstra,
+     * y para mantener el codigo organizado y encapsulado.
+     * Es estatica porque no necesita acceder a los miembros de la clase externa, y se puede instanciar sin necesidad
+     * de una instancia de la clase externa.
+     */
+    private static class NodoDijkstra {
+
+        /**
+         * Parada representada por el nodo de Dijkstra
+         */
+        private final Parada parada;
+
+        /**
+         * Tiempo acumulado para llegar a la parada representada por el nodo de Dijkstra
+         */
+        private final int tiempoAcumulado;
+
+        /**
+         * Constructor de la clase NodoDijkstra con la parada y el tiempo acumulado para llegar a esa parada
+         * @param parada
+         * @param tiempoAcumulado
+         */
+        public NodoDijkstra(Parada parada, int tiempoAcumulado) {
+            this.parada = parada;
+            this.tiempoAcumulado = tiempoAcumulado;
+        }
+
+        /**
+         * Obtiene la parada representada por el nodo de Dijkstra
+         * @return
+         */
+        public Parada getParada() {
+            return parada;
+        }
+
+        /**
+         * Obtiene el tiempo acumulado para llegar a la parada representada por el nodo de Dijkstra
+         * @return
+         */
+        public int getTiempoAcumulado() {
+            return tiempoAcumulado;
+        }
+
+        /**
+         * Obtiene una representación en forma de cadena del nodo de Dijkstra, mostrando la parada
+         * y el tiempo acumulado
+         * @return
+         */
+        @Override
+        public String toString() {
+            return "NodoDijkstra{" +
+                    "parada=" + parada.getCodigo() +
+                    ", tiempoAcumulado=" + tiempoAcumulado +
+                    '}';
+        }
+    }
 }
