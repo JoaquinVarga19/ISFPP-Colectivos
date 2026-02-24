@@ -1,4 +1,5 @@
-/*
+/**
+ *
 
 package colectivo.test;
 
@@ -19,7 +20,8 @@ import colectivo.conexion.Factory;
 import colectivo.dao.LineaDAO;
 import colectivo.dao.ParadaDAO;
 import colectivo.dao.TramoDAO;
-import colectivo.logica.Calculo;
+import colectivo.negocio.Calculo;
+import colectivo.negocio.CalculoDijkstra;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
@@ -39,17 +41,47 @@ class TestCalcularRecorridoDAO {
 	@BeforeEach
 	void setUp() throws Exception {
 
-		paradas = ((ParadaDAO) Factory.getInstancia("PARADA")).buscarTodos();
-
-		tramos = ((TramoDAO) Factory.getInstancia("TRAMO")).buscarTodos();
-		
-		lineas = ((LineaDAO) Factory.getInstancia("LINEA")).buscarTodos();
+        paradas = ((ParadaDAO) Factory.getInstancia("PARADA")).buscarTodos();
+        lineas = ((LineaDAO) Factory.getInstancia("LINEA")).buscarTodos();
+        tramos = ((TramoDAO) Factory.getInstancia("TRAMO")).buscarTodos();
 
 		diaSemana = 1; // lunes
 		horaLlegaParada = LocalTime.of(10, 35);
 
-		calculo = new Calculo();
+		calculo = new Calculo(new CalculoDijkstra());
 	}
+
+    @Test
+    void testCalcularRecorridoDijkstra() {
+        Parada origen = paradas.get(31); // Ajustá los IDs según tus archivos .txt
+        Parada destino = paradas.get(75);
+
+        assertNotNull(origen, "La parada de origen no existe en los datos");
+        assertNotNull(destino, "La parada de destino no existe en los datos");
+
+        // Ejecutamos el cálculo a través del Contexto (Strategy)
+        List<List<Recorrido>> soluciones = calculo.ejecutarCalculo(origen, destino, diaSemana, horaLlegaParada, tramos);
+
+        // Verificaciones básicas
+        assertNotNull(soluciones);
+        assertTrue(soluciones.size() > 0, "No se encontró ningún camino");
+
+        List<Recorrido> mejorCamino = soluciones.get(0);
+
+        // Verificamos el primer tramo del camino
+        Recorrido primerTramo = mejorCamino.get(0);
+        assertEquals(origen.getCodigo(), primerTramo.getOrigen().getCodigo());
+        assertNotNull(primerTramo.getLinea(), "El primer tramo debería tener una línea asignada");
+
+        // Verificamos el último tramo del camino
+        Recorrido ultimoTramo = mejorCamino.get(mejorCamino.size() - 1);
+        assertEquals(destino.getCodigo(), ultimoTramo.getDestino().getCodigo());
+
+        // Ejemplo de validación de duración si la conocés de antemano
+        // assertEquals(480, primerTramo.getDuracion());
+    }
+
+
 
 	@Test
 	void testSinColectivo() {
@@ -243,4 +275,4 @@ class TestCalcularRecorridoDAO {
 
 	}
 }
-*/
+ */
