@@ -40,7 +40,9 @@ public class CalculoCaminando implements AlgoritmoRecorrido {
         lineaPeaton.setNombre(Constantes.NOMBRE_LINEA_PEATON);
 
         double distancia = calcularHaversine(paradaOrigen, paradaDestino);
-        double tiempoEnMinutos = (distancia / 5.0 * 60);
+        double tiempoEnHoras = distancia / 5.0;
+        double tiempoEnMinutos = tiempoEnHoras * 60;
+        int tiempoEnSegundos = (int) Math.round(tiempoEnMinutos * 60);
 
         List<Recorrido> opcionApie = new ArrayList<>();
 
@@ -49,7 +51,8 @@ public class CalculoCaminando implements AlgoritmoRecorrido {
         tramoCaminando.setOrigen(paradaOrigen);
         tramoCaminando.setDestino(paradaDestino);
         tramoCaminando.setLinea(lineaPeaton);
-        tramoCaminando.setDuracion((int) Math.round(tiempoEnMinutos));
+
+        tramoCaminando.setDuracion(tiempoEnSegundos);
 
         opcionApie.add(tramoCaminando);
         soluciones.add(opcionApie);

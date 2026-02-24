@@ -48,17 +48,24 @@ public class CalculoDirecto implements AlgoritmoRecorrido {
                 for (int i = indiceOrigen; i < indiceDestino; i++) {
                     Parada actual = paradasDeEstaLinea.get(i);
                     Parada siguiente = paradasDeEstaLinea.get(i + 1);
-                    String tramoId = actual.getCodigo() + "-" + siguiente.getCodigo();
+
+                    String tramoId = actual.getCodigo() + "-" + siguiente.getCodigo() + "-1";
                     Tramo tramoInfo = tramos.get(tramoId);
+
                     //Confirmacion de seguridad
                     if (tramoInfo != null) {
                         Recorrido tramoRecorrido = new Recorrido();
                         tramoRecorrido.setOrigen(actual);
                         tramoRecorrido.setDestino(siguiente);
                         tramoRecorrido.setLinea(linea);
+
                         tramoRecorrido.setDuracion(tramoInfo.getTiempo());
                         //agregamos el tramo al recorrido directo
                         opcionDirecta.add(tramoRecorrido);
+                    } else {
+                        // Si no se encuentra el tramo, se omite esta opción directa
+                        opcionDirecta.clear();
+                        break;
                     }
                 }
                 if (!opcionDirecta.isEmpty()) {

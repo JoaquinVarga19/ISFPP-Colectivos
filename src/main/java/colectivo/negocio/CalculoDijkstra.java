@@ -81,6 +81,7 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
 
             //Exploramos los tramos vecinos
             for (Tramo tramo : mapaGrafo.obtenerTramosDesde(paradaActual.getCodigo())) {
+                if (tramo.getTipo() != 1) continue;
                 //LocalTime horaLlegadaAParada = horaLlegada.plusMinutes(tiempoAcumuladoActual);
                 int tiempoDelTramo = calcularTiempoTotalTramo(tramo, tiempoAcumuladoActual, diaSemana, horaLlegada);
 

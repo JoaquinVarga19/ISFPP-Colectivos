@@ -187,7 +187,7 @@ public class TramoDAOArchivo implements TramoDAO {
 
                 if (paradaInicio != null && paradaFin != null) {
                     Tramo tramo = new Tramo(paradaInicio, paradaFin, tiempo, tipo);
-                    String codigoTramo = inicio + "-" + fin;
+                    String codigoTramo = inicio + "-" + fin + "-" + tipo; //se cambio esta linea
                     tramos.put(codigoTramo, tramo);
                 } else {
                     LOGGER.warn("No se pudo crear el tramo debido a que no se encontraron las paradas de" +
