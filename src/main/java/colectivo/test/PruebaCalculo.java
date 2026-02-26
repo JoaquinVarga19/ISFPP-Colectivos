@@ -1,110 +1,123 @@
 package colectivo.test;
 
 import colectivo.conexion.Factory;
-import colectivo.dao.*;
-import colectivo.modelo.*;
-import colectivo.negocio.*;
-import java.time.LocalTime;
-import java.util.*;
+import colectivo.dao.ParadaDAO;
+import colectivo.dao.TramoDAO;
+import colectivo.modelo.Parada;
+import colectivo.modelo.Recorrido;
+import colectivo.modelo.Tramo;
+import colectivo.negocio.Calculo;
+import colectivo.negocio.CalculoCaminando;
+import colectivo.negocio.CalculoDijkstra;
+import colectivo.negocio.CalculoDirecto;
 
-public class PruebaCalculo{
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Scanner;
+
+public class PruebaCalculo {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
+        // Usamos Locale.US para que acepte puntos en coordenadas si fuera necesario
+        sc.useLocale(Locale.US);
 
         try {
-            System.out.println("Cargando sistema de transporte...");
-            // Uso de Factory con los tipos correctos
+            System.out.println("=== SISTEMA DE TRANSPORTE - MODO PRUEBA ===");
+
+            // 1. CARGA DE DATOS DESDE ARCHIVOS
             ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
             TramoDAO tramoDAO = Factory.getInstancia("TRAMO", TramoDAO.class);
 
             Map<Integer, Parada> todasLasParadas = paradaDAO.buscarTodos();
             Map<String, Tramo> todosLosTramos = tramoDAO.buscarTodos();
 
-            // 1. INGRESO DE ORIGEN Y DESTINO
-            Parada origen = buscarParada(sc, todasLasParadas, "ORIGEN");
-            Parada destino = buscarParada(sc, todasLasParadas, "DESTINO");
+            // 2. INGRESO DE ORIGEN Y DESTINO
+            Parada origen = solicitarParada(sc, todasLasParadas, "ORIGEN");
+            Parada destino = solicitarParada(sc, todasLasParadas, "DESTINO");
 
             if (origen == null || destino == null) return;
 
-            // 2. INGRESO DE DÍA Y HORA
+            // 3. INGRESO DE DÍA Y HORA
             System.out.println("\nDías: 1:Lun, 2:Mar, 3:Mie, 4:Jue, 5:Vie, 6:Sab, 7:Dom/Fer");
             System.out.print("Ingrese día (número): ");
             int dia = sc.nextInt();
 
-            System.out.print("Ingrese hora (0-23): ");
-            int hora = sc.nextInt();
-            System.out.print("Ingrese minutos (0-59): ");
-            int min = sc.nextInt();
-            LocalTime horaActual = LocalTime.of(hora, min);
+            System.out.print("Ingrese horario (formato HH:mm, ej 08:30): ");
+            String horaStr = sc.next();
+            LocalTime horaActual = LocalTime.parse(horaStr);
 
-            // 3. CÁLCULO Y MUESTRA DE RESULTADOS
-            Calculo calculo = new Calculo(new CalculoDijkstra());
+            // 4. EJECUCIÓN DEL MOTOR DE CÁLCULO (Strategy)
+            Calculo calculador = new Calculo(new CalculoDijkstra());
 
-            System.out.println("\n--- RECORRIDOS DISPONIBLES ---");
+            System.out.println("\n" + "=".repeat(50));
+            System.out.println("RECORRIDOS: " + origen.getDireccion() + " -> " + destino.getDireccion());
+            System.out.println("=".repeat(50));
 
-            // Opción Colectivos (Dijkstra)
-            imprimirCamino("OPCIÓN COLECTIVO (Dijkstra)",
-                    calculo.ejecutarCalculo(origen, destino, dia, horaActual, todosLosTramos));
+            // --- OPCIÓN A: DIJKSTRA (Combinaciones) ---
+            System.out.println("\n>>> OPCIÓN 1: CAMINO MÁS CORTO (Dijkstra)");
+            imprimirCamino(calculador.ejecutarCalculo(origen, destino, dia, horaActual, todosLosTramos));
 
-            // Opción Directo
-            calculo.setEstrategia(new CalculoDirecto());
-            imprimirCamino("OPCIÓN LÍNEA DIRECTA",
-                    calculo.ejecutarCalculo(origen, destino, dia, horaActual, todosLosTramos));
+            // --- OPCIÓN B: DIRECTO (Sin trasbordos) ---
+            System.out.println("\n>>> OPCIÓN 2: COLECTIVO DIRECTO (Sin trasbordos)");
+            calculador.setEstrategia(new CalculoDirecto());
+            imprimirCamino(calculador.ejecutarCalculo(origen, destino, dia, horaActual, todosLosTramos));
 
-            // Opción Caminando
-            calculo.setEstrategia(new CalculoCaminando());
-            imprimirCamino("OPCIÓN CAMINANDO",
-                    calculo.ejecutarCalculo(origen, destino, dia, horaActual, todosLosTramos));
+            // --- OPCIÓN C: CAMINANDO ---
+            System.out.println("\n>>> OPCIÓN 3: CAMINANDO");
+            calculador.setEstrategia(new CalculoCaminando());
+            imprimirCamino(calculador.ejecutarCalculo(origen, destino, dia, horaActual, todosLosTramos));
 
         } catch (Exception e) {
-            System.err.println("Ocurrió un error: " + e.getMessage());
+            System.out.println("\nError: " + e.getMessage());
+            System.out.println("Verifique que el formato de hora sea HH:mm y los IDs existan.");
         }
     }
 
-    private static Parada buscarParada(Scanner sc, Map<Integer, Parada> paradas, String tipo) {
-        System.out.print("\nIngrese " + tipo + " (Código o Dirección): ");
+    private static Parada solicitarParada(Scanner sc, Map<Integer, Parada> paradas, String tipo) {
+        System.out.print("\nIngrese " + tipo + " (ID o parte de la Dirección): ");
         String entrada = sc.next();
 
-        // Búsqueda por código si la entrada es numérica
+        // Búsqueda por ID
         if (entrada.matches("\\d+")) {
-            return paradas.get(Integer.parseInt(entrada));
+            Parada p = paradas.get(Integer.parseInt(entrada));
+            if (p != null) return p;
         }
 
-        // Búsqueda por dirección (usando getDireccion())
+        // Búsqueda por texto en Dirección
         for (Parada p : paradas.values()) {
-            if (p.getDireccion().equalsIgnoreCase(entrada)) {
+            if (p.getDireccion().toLowerCase().contains(entrada.toLowerCase())) {
+                System.out.println("Seleccionada: " + p.getDireccion() + " (ID: " + p.getCodigo() + ")");
                 return p;
             }
         }
+
         System.out.println("No se encontró la parada: " + entrada);
         return null;
     }
 
-    private static void imprimirCamino(String titulo, List<List<Recorrido>> soluciones) {
-        System.out.println("\n" + titulo);
-        System.out.println("=========================================");
-
+    private static void imprimirCamino(List<List<Recorrido>> soluciones) {
         if (soluciones == null || soluciones.isEmpty()) {
-            System.out.println("No hay recorridos disponibles.");
-        } else {
-            // Se muestra la primera solución encontrada
-            List<Recorrido> camino = soluciones.get(0);
-            for (Recorrido r : camino) {
-                // Se usa getNombre() de la clase Linea
-                String nombreLinea = (r.getLinea() != null) ? r.getLinea().getNombre() : "A PIE";
-
-                System.out.println("Línea: " + nombreLinea);
-                // Se usa getDireccion() de la clase Parada
-                System.out.println(r.getOrigen().getDireccion() + " -> " + r.getDestino().getDireccion());
-
-                // Formateo de duración
-                int segundosTotales = r.getDuracion();
-                int min = segundosTotales / 60;
-                int seg = segundosTotales % 60;
-
-                System.out.println("Duración: " + min + "m " + seg + "s");
-                System.out.println("-----------------------------------------");
-            }
+            System.out.println("  No hay recorridos disponibles para esta opción.");
+            return;
         }
+
+        // Mostramos la primera solución (la más óptima de esa estrategia)
+        List<Recorrido> camino = soluciones.get(0);
+        int tiempoTotalSegundos = 0;
+
+        for (Recorrido r : camino) {
+            String lineaLabel = (r.getLinea() != null) ? r.getLinea().getNombre() : "A PIE";
+            System.out.println("  [" + lineaLabel + "]");
+            System.out.println("  " + r.getOrigen().getDireccion() + " -> " + r.getDestino().getDireccion());
+
+            int seg = r.getDuracion();
+            tiempoTotalSegundos += seg;
+            System.out.println("  Duración: " + (seg / 60) + "m " + (seg % 60) + "s");
+            System.out.println("  " + "-".repeat(30));
+        }
+
+        System.out.println("  >> TIEMPO TOTAL ESTIMADO: " + (tiempoTotalSegundos / 60) + "m " + (tiempoTotalSegundos % 60) + "s");
     }
 }

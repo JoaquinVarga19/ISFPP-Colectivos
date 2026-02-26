@@ -47,9 +47,18 @@ public class MapaGrafo {
 
         //Llenar el mapa de adyacencias con los tramos
         for (Tramo tramo : tramos.values()) {
-            if (adyacencias.containsKey(tramo.getInicio().getCodigo())) {
-                adyacencias.get(tramo.getInicio().getCodigo()).add(tramo);
+
+            //Esto es para que Dijkstra muestre recorridos en colectivo y no A PIE, es mas que nada para practica
+            if (tramo.getTipo() == 1) {
+                if (adyacencias.containsKey(tramo.getInicio().getCodigo())) {
+                    adyacencias.get(tramo.getInicio().getCodigo()).add(tramo);
+                }
             }
+
+            //
+            //if (adyacencias.containsKey(tramo.getInicio().getCodigo())) {
+              //  adyacencias.get(tramo.getInicio().getCodigo()).add(tramo);
+            //}
         }
     }
 

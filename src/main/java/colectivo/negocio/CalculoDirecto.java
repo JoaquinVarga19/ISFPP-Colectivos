@@ -49,6 +49,7 @@ public class CalculoDirecto implements AlgoritmoRecorrido {
                     Parada actual = paradasDeEstaLinea.get(i);
                     Parada siguiente = paradasDeEstaLinea.get(i + 1);
 
+                    //Construimos el ID del tramo utilizando el formato "origen-destino-tipo", donde tipo es 1 para colectivo.
                     String tramoId = actual.getCodigo() + "-" + siguiente.getCodigo() + "-1";
                     Tramo tramoInfo = tramos.get(tramoId);
 

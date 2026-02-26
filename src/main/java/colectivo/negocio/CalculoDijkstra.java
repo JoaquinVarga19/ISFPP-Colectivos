@@ -83,7 +83,7 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
             for (Tramo tramo : mapaGrafo.obtenerTramosDesde(paradaActual.getCodigo())) {
                 if (tramo.getTipo() != 1) continue;
                 //LocalTime horaLlegadaAParada = horaLlegada.plusMinutes(tiempoAcumuladoActual);
-                int tiempoDelTramo = calcularTiempoTotalTramo(tramo, tiempoAcumuladoActual, diaSemana, horaLlegada);
+                int tiempoDelTramo = calcularTiempoTotalTramo(tramo, tiempoAcumuladoActual, diaSemana, horaLlegada, tramos);
 
                 //Si el tiempo total para recorrer el tramo es infinito, significa que no hay colectivos disponibles para ese tramo
                 if (tiempoDelTramo != Integer.MAX_VALUE) {
@@ -101,7 +101,7 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
         }
         // Si encontramos un camino hasta el destino, lo reconstruimos
         if (tramosPadres.containsKey(paradaDestino.getCodigo())) {
-            List<Recorrido> mejorCamino = reconstruirCamino(tramosPadres, paradaDestino);
+            List<Recorrido> mejorCamino = reconstruirCamino(tramosPadres, paradaDestino, tramos);
             soluciones.add(mejorCamino);
         }
         return soluciones;
@@ -127,16 +127,21 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
     /**
      * Encuentra la linea del tramo, verificando que el tramo sea de tipo colectivo y que la parada de fin del tramo
      * @param inicio parada de inicio del tramo
-     * @param tramo del cual queremos encontar la linea
+     * @param tramoBuscado del cual queremos encontar la linea
      * @return
      */
-    private Linea encontrarLineaDelTramo(Parada inicio, Tramo tramo) {
-        if (tramo.getTipo() != 1) {
-            return null;
-        }
+    private Linea encontrarLineaDelTramo(Parada inicio, Tramo tramoBuscado, Map<String, Tramo> tramos) {
+        //Recorremos todas las lineas disponibles en el sistema
         for (Linea linea : inicio.getLineas()) {
-            if (linea.getParadas().contains(tramo.getFin())) {
-                return linea;
+            List<Parada> paradas = linea.getParadas();
+            for (int i = 0; i < paradas.size() - 1; i++) {
+                if (paradas.get(i).getCodigo() == tramoBuscado.getInicio().getCodigo() &&
+                        paradas.get(i + 1).getCodigo() == tramoBuscado.getFin().getCodigo()) {
+                    String clave = paradas.get(i).getCodigo() + "-" + paradas.get(i+1).getCodigo() + "-1";
+                    if (tramos.containsKey(clave)) {
+                        return linea;
+                    }
+                }
             }
         }
         return null;
@@ -168,14 +173,15 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
      * @param paradaDestino parada de destino desde la cual se va a reconstruir el camino hacia la parada de origen
      * @return
      */
-    private List<Recorrido> reconstruirCamino(Map<Integer, Tramo> tramosPadres, Parada paradaDestino) {
+    private List<Recorrido> reconstruirCamino(Map<Integer, Tramo> tramosPadres, Parada paradaDestino, Map<String,
+            Tramo> tramos) {
         List<Recorrido> camino = new ArrayList<>();
         Tramo tramoActual = tramosPadres.get(paradaDestino.getCodigo());
 
         while (tramoActual != null) {
-            Linea linea = encontrarLineaDelTramo(tramoActual.getInicio(), tramoActual);
+            Linea linea = encontrarLineaDelTramo(tramoActual.getInicio(), tramoActual, tramos);
             Recorrido r = new Recorrido();
-            r.setLinea(linea);
+            r.setLinea(linea); // Aquí se setea la línea encontrada (o null si era a pie)
             r.setOrigen(tramoActual.getInicio());
             r.setDestino(tramoActual.getFin());
             r.setDuracion(tramoActual.getTiempo());
@@ -197,13 +203,13 @@ public class CalculoDijkstra implements AlgoritmoRecorrido {
      * inicio del tramo, sumando el tiempo acumulado actual
      * @return
      */
-    private int calcularTiempoTotalTramo(Tramo tramo, int tiempoAcumuladoActual, int diaSemana, LocalTime horaLlegadaBase) {
-        Linea linea = encontrarLineaDelTramo(tramo.getInicio(), tramo);
+    private int calcularTiempoTotalTramo(Tramo tramo, int tiempoAcumuladoActual, int diaSemana, LocalTime horaLlegadaBase, Map<String, Tramo> tramos) {
+        Linea linea = encontrarLineaDelTramo(tramo.getInicio(), tramo, tramos);
         if (linea == null) {
             return tramo.getTiempo();
         }
         List<LocalTime> horarios = linea.obtenerHorariosPorDia(diaSemana);
-        LocalTime horaLlegadaAParada = horaLlegadaBase.plusMinutes(tiempoAcumuladoActual);
+        LocalTime horaLlegadaAParada = horaLlegadaBase.plusSeconds(tiempoAcumuladoActual);
 
         int tiempoEspera = calcularEspera(horarios, horaLlegadaAParada);
 
