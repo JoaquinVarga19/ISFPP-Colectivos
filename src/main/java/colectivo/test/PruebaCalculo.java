@@ -1,6 +1,7 @@
 package colectivo.test;
 
 import colectivo.conexion.Factory;
+import colectivo.dao.LineaDAO;
 import colectivo.dao.ParadaDAO;
 import colectivo.dao.TramoDAO;
 import colectivo.modelo.Parada;
@@ -29,9 +30,11 @@ public class PruebaCalculo {
             // 1. CARGA DE DATOS DESDE ARCHIVOS
             ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
             TramoDAO tramoDAO = Factory.getInstancia("TRAMO", TramoDAO.class);
+            LineaDAO lineaDAO = Factory.getInstancia("LINEA", colectivo.dao.LineaDAO.class);
 
             Map<Integer, Parada> todasLasParadas = paradaDAO.buscarTodos();
             Map<String, Tramo> todosLosTramos = tramoDAO.buscarTodos();
+            lineaDAO.buscarTodos();
 
             // 2. INGRESO DE ORIGEN Y DESTINO
             Parada origen = solicitarParada(sc, todasLasParadas, "ORIGEN");

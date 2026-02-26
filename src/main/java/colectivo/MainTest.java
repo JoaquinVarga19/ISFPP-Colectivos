@@ -54,7 +54,7 @@ public class MainTest {
             tramosMap.values().stream().limit(149).forEach(t -> {
                 System.out.println("Desde: " + t.getInicio().getDireccion() +
                         " Hasta: " + t.getFin().getDireccion() +
-                        " | Tiempo: " + t.getTiempo() + " min");
+                        " | Tiempo: " + t.getTiempo() + " segs");
             });
 
         } catch (Exception e) {

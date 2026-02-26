@@ -36,12 +36,16 @@ public class CalculoDirecto implements AlgoritmoRecorrido {
 
         for (Linea linea : paradaOrigen.getLineas()) {
 
-            //Lista de paradas por las que pasa una linea.
-            List<Parada> paradasDeEstaLinea = linea.getParadas();
-
             //Indices de parada y origen
-            int indiceOrigen = paradasDeEstaLinea.indexOf(paradaOrigen);
-            int indiceDestino = paradasDeEstaLinea.indexOf(paradaDestino);
+            int indiceOrigen = -1;
+            int indiceDestino = -1;
+
+            //Lista de paradas por las que pasa una linea. -------------------------------------
+            List<Parada> paradasDeEstaLinea = linea.getParadas();
+            for (int i = 0; i < paradasDeEstaLinea.size(); i++) {
+                if (paradasDeEstaLinea.get(i).getCodigo() == paradaOrigen.getCodigo()) indiceOrigen = i;
+                if (paradasDeEstaLinea.get(i).getCodigo() == paradaDestino.getCodigo()) indiceDestino = i;
+            }
 
             if (indiceOrigen != -1 && indiceDestino != -1 && indiceOrigen < indiceDestino) {
                 List<Recorrido> opcionDirecta = new ArrayList<>();
