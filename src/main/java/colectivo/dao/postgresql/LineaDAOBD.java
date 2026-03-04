@@ -42,12 +42,12 @@ public class LineaDAOBD implements LineaDAO {
     private final Map<Integer, Parada> paradasCargadas;
 
     /**
-     *
+     * Mapa de lineas que almacena la linea como clave el codigo de la linea y el objeto Linea como valor.
      */
     private Map<String, Linea> lineasMap;
 
     /**
-     *
+     * Bandera que indica si se actualizo la base de datos al realizar el CRUD.
      */
     private boolean actualizar = true;
 
@@ -72,8 +72,8 @@ public class LineaDAOBD implements LineaDAO {
     @Override
     public void insertar(Linea linea) {
         Connection con = null;
+        con = ConexionBD.getConnection();
         try {
-            con = ConexionBD.getConnection();
             con.setAutoCommit(false); // Iniciamos la transacción, nada se guardará hasta que confirmemos que t0d0 salió bien
             String sqlLinea = "INSERT INTO \"colectivo_RW\".linea (codigo, nombre) VALUES (?, ?)";
             try (PreparedStatement psl = con.prepareStatement(sqlLinea)) {
@@ -139,8 +139,8 @@ public class LineaDAOBD implements LineaDAO {
     @Override
     public void actualizar(Linea linea) {
         Connection con = null;
+        con = ConexionBD.getConnection();
         try {
-            con = ConexionBD.getConnection();
             con.setAutoCommit(false); // Iniciamos la transacción
 
             String sqlLinea = "UPDATE \"colectivo_RW\".linea SET nombre = ? WHERE codigo = ?";
@@ -220,8 +220,8 @@ public class LineaDAOBD implements LineaDAO {
     @Override
     public void borrar(Linea linea) {
         Connection con = null;
+        con = ConexionBD.getConnection();
         try {
-            con = ConexionBD.getConnection();
             con.setAutoCommit(false);
 
             //Borramos dependencias de las tablas hijas (linea_parada y linea_frecuencia)
@@ -272,21 +272,17 @@ public class LineaDAOBD implements LineaDAO {
     }
 
     /**
-     * Aca se implementa el metodo de buscar todas las lineas de la BD, se define la consulta SQL para obtener todas
-     * las lineas, se hace la conexion a la BD utilizando ConexionBD.getConnection(), despues se hacen tres tipos de
-     * try-with-resources para las consultas SQL, una para las lineas, otro para las paradas de cada linea y otro para
-     * las frecuencias de las mismas.
-     * Esos tres mencionados anteriormente siguen casi la misma logica respecto a la consulta SQL y a la iteracion de
-     * los resultados obtenidos.
-     * lineasMap es el mapa que se va a retornar con todas las lineas cargadas, con su codigo como clave y al objeto
-     * linea.
-     * @return un mapa con todas las lineas cargadas, con su codigo como clave y al objeto linea. Si no se han cargado
-     * paradas o no se encuentran lineas, se retorna un mapa vacio.
+     * Aca se llama al metodo leerDesdeBD() para cargar las lineas desde la base de datos, si el flag actualizar es true
+     * o el mapa de lineas es null, se carga el mapa de lineas con los datos de la base de datos, y se setea el flag
+     * actualizar a false para indicar que las lineas ya estan actualizadas. Si el flag actualizar es false y el mapa
+     * de lineas no es null, se devuelve el mapa de lineas cargado previamente sin volver a cargarlo desde
+     * la base de datos.
+      * @return un mapa con todas las lineas cargadas, con su codigo como clave y al objeto linea como valor.
      */
     @Override
     public Map<String, Linea> buscarTodos() {
         if (actualizar || lineasMap == null) {
-            this.lineasMap = leerDesdeBD(); // El método que ya tienes con toda la lógica SQL
+            this.lineasMap = leerDesdeBD();
             this.actualizar = false;
         }
         return this.lineasMap;
@@ -308,7 +304,12 @@ public class LineaDAOBD implements LineaDAO {
         }
     }
 
-
+    /**
+     * Metodo privado para cargar las lineas desde la base de datos, se hace la conexion a la base de datos utilizando
+     * ConexionBD.getConnection(), se definen las consultas SQL para obtener las lineas, las paradas relacionadas y las
+     * frecuencias, se preparan las consultas con PreparedStatement y se ejecutan para obtener los ResultSet correspondientes.
+     * @return
+     */
     private Map<String, Linea> leerDesdeBD() {
         Map<String, Linea> lineasMap = new LinkedHashMap<>();
 
@@ -316,8 +317,8 @@ public class LineaDAOBD implements LineaDAO {
             LOGGER.warn("No se han cargado paradas en LineaDAOBD, las lineas no se podran cargar correctamente.");
             return Collections.emptyMap();
         }
-
-        try (Connection con = ConexionBD.getConnection()) {
+        Connection con = ConexionBD.getConnection();
+        try  {
             String sqlLineas = "SELECT codigo, nombre FROM \"colectivo_RW\".linea";
             try (PreparedStatement ps = con.prepareStatement(sqlLineas);
                  ResultSet rsl = ps.executeQuery()) {
@@ -334,8 +335,8 @@ public class LineaDAOBD implements LineaDAO {
                 return Collections.emptyMap();
             }
 
-            String sqlPl = "SELECT codigo_linea, id_parada, orden FROM \"colectivo_RW\".linea_parada ORDER BY " +
-                    "codigo_linea, orden ASC";
+            String sqlPl = "SELECT codigo_linea, id_parada, orden FROM \"colectivo_RW\".linea_parada " +
+                    "ORDER BY codigo_linea, orden ASC";
             try (PreparedStatement ps = con.prepareStatement(sqlPl);
                  ResultSet rspl = ps.executeQuery()) {
 

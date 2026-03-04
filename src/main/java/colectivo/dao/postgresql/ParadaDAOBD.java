@@ -51,9 +51,8 @@ public class ParadaDAOBD implements ParadaDAO {
     @Override
     public void insertar(Parada parada) {
         String sql = "INSERT INTO \"colectivo_RW\".parada (id_parada, direccion, latitud, longitud) VALUES (?, ?, ?, ?)";
-
-        try (Connection con = ConexionBD.getConnection();
-        PreparedStatement ps = con.prepareStatement(sql)) {
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, parada.getCodigo());
             ps.setString(2, parada.getDireccion());
@@ -93,8 +92,8 @@ public class ParadaDAOBD implements ParadaDAO {
     @Override
     public void actualizar(Parada parada) {
         String sql = "UPDATE \"colectivo_RW\".parada SET direccion = ?, latitud = ?, longitud = ? WHERE id_parada = ?";
-        try (Connection con = ConexionBD.getConnection();
-              PreparedStatement ps = con.prepareStatement(sql)) {
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, parada.getDireccion());
             ps.setDouble(2, parada.getLatitud());
@@ -130,8 +129,8 @@ public class ParadaDAOBD implements ParadaDAO {
     @Override
     public void borrar(Parada parada) {
         String sql = "DELETE FROM \"colectivo_RW\".parada WHERE id_parada = ?";
-        try (Connection con = ConexionBD.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);) {
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql);) {
 
             ps.setInt(1, parada.getCodigo());
             int filasAfectadas = ps.executeUpdate();
@@ -151,15 +150,10 @@ public class ParadaDAOBD implements ParadaDAO {
     }
 
     /**
-     * Metodo para buscar todas las paradas en la base de datos, se devuelve un mapa con el ID de la parada como clave
-     * y el objeto Parada como valor.
-     * Definimos parametros para la conexion con la BD, despues un PreparedStatement para ejecutar la consulta SQL
-     * y un Resultset rs para almacenar el resultado de la consulta.
-     * Luego hacemos un mapeo de datos con las columnas de la tabla de paradas en la base de datos, creando un objeto
-     * Parada con los datos obtenidos y agregandolo al mapa que se devuelve al final del metodo.
-     * Se lanza una excepcion throw new RuntimeException para frenar el proceso en caso de que la BD de un error
-     * @return mapa con el ID de la parada como clave y el objeto Parada como valor, con todas las paradas encontradas
-     * en la base de datos
+     * Aca se buscan todas las paradas de la BD, si el mapa de paradas es nulo o si se actualizo la BD, se llama al metodo
+     * leerDeBD() para cargar las paradas desde la base de datos, se actualiza el mapa de paradas con los datos leidos
+     * de la BD y se establece actualizar en false para indicar que el mapa de paradas esta actualizado con los datos
+     * de la BD. Finalmente, se devuelve el mapa de paradas.
      */
     @Override
     public Map<Integer, Parada> buscarTodos() {
@@ -170,10 +164,18 @@ public class ParadaDAOBD implements ParadaDAO {
         return this.paradasMap;
     }
 
+    /**
+     * Metodo privado para leer todas las paradas de la base de datos, se devuelve un mapa con el ID de la parada como clave
+     * y el objeto Parada como valor.
+     * Definimos parametros para la conexion con la BD, despues un PreparedStatement para ejecutar la consulta SQL que
+     * selecciona todas las paradas de la tabla "colectivo_RW".parada, y un ResultSet para almacenar los resultados de
+     * la consulta.
+     * @return
+     */
     private Map<Integer, Parada> leerDeBD() {
         Map<Integer, Parada> mapa = new HashMap<>();
-        try (Connection con = ConexionBD.getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT * FROM \"colectivo_RW\".parada");
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement("SELECT * FROM \"colectivo_RW\".parada");
              ResultSet rs = ps.executeQuery()){
 
             //aca es donde hacemos el mapeo de datos

@@ -35,12 +35,12 @@ public class TramoDAOBD implements TramoDAO {
     private final Map<Integer, Parada> paradasCargadas;
 
     /**
-     * 
+     *  Mapa de tramos que almacena el tramo con su codigo como clave y al objeto tramo como valor.
      */
     private Map<String, Tramo> tramosMap;
 
     /**
-     *
+     * Indica si se actualizo la base de datos al realizar el CRUD.
      */
     private boolean actualizar = true;
 
@@ -62,8 +62,8 @@ public class TramoDAOBD implements TramoDAO {
     @Override
     public void insertar(Tramo tramo) {
         String sql = "INSERT INTO \"colectivo_RW\".tramo (id_origen, id_destino, tiempo, tipo) VALUES (?, ?, ?, ?)";
-        try (Connection con = ConexionBD.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, tramo.getInicio().getCodigo());
             ps.setInt(2, tramo.getFin().getCodigo());
@@ -95,8 +95,8 @@ public class TramoDAOBD implements TramoDAO {
     @Override
     public void actualizar(Tramo tramo) {
         String sql = "UPDATE \"colectivo_RW\".tramo SET tiempo = ? WHERE id_origen = ? AND id_destino = ? AND tipo = ?";
-        try (Connection con = ConexionBD.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, tramo.getTiempo());
             ps.setInt(2, tramo.getInicio().getCodigo());
@@ -131,8 +131,8 @@ public class TramoDAOBD implements TramoDAO {
     @Override
     public void borrar(Tramo tramo) {
         String sql = "DELETE FROM \"colectivo_RW\".tramo WHERE id_origen = ? AND id_destino = ? AND tipo = ?";
-        try (Connection con = ConexionBD.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, tramo.getInicio().getCodigo());
             ps.setInt(2, tramo.getFin().getCodigo());
@@ -152,14 +152,6 @@ public class TramoDAOBD implements TramoDAO {
     }
 
     /**
-     * Aca se implementa el metodo que busca todos los tramos en la base de datos, se define la consulta SQL para
-     * obtener los tramos con sus respectivos campos, se hace la conexion a la base de datos utilizando
-     * ConexionBD.getConnection(), se prepara la consulta con PreparedStatement y se ejecuta la consulta con
-     * ps.executeQuery() para obtener un ResultSet con los resultados.
-     * Luego se itera sobre el ResultSet para crear objetos Tramo a partir de los datos obtenidos, utilizando el mapa de
-     * paradas cargadas para obtener las paradas de origen y destino correspondientes a cada tramo.
-     * Se verifica que las paradas de origen y destino existan en el mapa antes de crear el tramo, y si no se encuentran
-     * se registra una advertencia en el logger.
      *
      * @return mapa con los tramos encontrados en la BD.
      */
@@ -189,11 +181,25 @@ public class TramoDAOBD implements TramoDAO {
         }
     }
 
+    /**
+     * Metodo privado para leer todas los tramos de la base de datos, se devuelve un mapa con el codigo del tramo como clave
+     * y el objeto Tramo como valor, se define la consulta SQL para seleccionar los tramos de la tabla
+     * "colectivo_RW".tramo, se hace la conexion a la base de datos utilizando ConexionBD.getConnection(),
+     * se prepara la consulta con PreparedStatement y se ejecuta la consulta con ps.executeQuery() para obtener un
+     * ResultSet con los resultados de la consulta, se itera sobre el ResultSet para crear los objetos Tramo
+     * correspondientes a cada fila de resultados, se obtiene el ID de origen y destino de cada tramo, se buscan las
+     * paradas correspondientes en el mapa de paradas cargadas, se crea un objeto Tramo con los datos obtenidos y se
+     * agrega al mapa de tramos con el codigo del tramo como clave, si no se encuentran las paradas de origen o destino
+     * para un tramo se registra una advertencia en el logger indicando que no se pudo crear el tramo debido a que no se
+     * encontraron las paradas de origen o destino para ese tramo, finalmente se devuelve el mapa de tramos con los
+     * tramos encontrados en la base de datos.
+     * @return mapa con el codigo del tramo como clave y le  objeto Tramo como valor.
+     */
     private Map<String, Tramo> leerDesdeBD() {
         Map<String, Tramo> mapa = new HashMap<>();
         String sql = "SELECT id_origen, id_destino, tiempo, tipo FROM \"colectivo_RW\".tramo";
-        try (Connection con = ConexionBD.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
+        Connection con = ConexionBD.getConnection();
+        try (PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {

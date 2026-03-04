@@ -1,5 +1,8 @@
 package colectivo.conexion;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -14,6 +17,11 @@ public class ConexionBD {
      * conexion a la base de datos, se mantiene una unica conexion durante toda la ejecucion del programa
      */
     private static Connection con = null;
+
+    /**
+     * Logger para registrar eventos y errores relacionados con la conexión a la base de datos
+     */
+    private static final Logger LOGGER = LogManager.getLogger(ConexionBD.class);
 
     // Nos conectamos a la base de datos (con los datos de conexión del archivo
     // jdbc.properties)
@@ -40,7 +48,7 @@ public class ConexionBD {
             }
             return con;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LOGGER.fatal("No se pudo crear la conexión a la BD.", ex);
             throw new RuntimeException("Error al crear la conexion", ex);
         }
     }
@@ -56,15 +64,11 @@ public class ConexionBD {
             try {
                 Connection con = ConexionBD.getConnection();
                 con.close();
+                LOGGER.info("Conexion a la BD cerrada correctamente.");
             } catch (Exception ex) {
-                ex.printStackTrace();
+                LOGGER.error("Error intentando cerrar la conexión a la BD.", ex);
                 throw new RuntimeException(ex);
             }
         }
     }
 }
-
-/**
- *
- *
- */
