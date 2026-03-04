@@ -19,7 +19,7 @@ public class ConexionBD {
     // jdbc.properties)
     public static Connection getConnection() {
         try {
-            if (con == null) {
+            if (con == null || con.isClosed()) {
                 // con esto determinamos cuando finalize el programa
                 Runtime.getRuntime().addShutdownHook(new MiShDwnHook());
                 ResourceBundle rb = ResourceBundle.getBundle("jdbc");
@@ -29,6 +29,7 @@ public class ConexionBD {
                 String pwd = rb.getString("pwd");
                 String schema = rb.getString("schema");
                 Class.forName(driver);
+                //Class.forName("\"org.postgresql.Driver\"");
                 con = DriverManager.getConnection(url, usr, pwd);
                 Statement statement = con.createStatement();
                 try {
@@ -62,3 +63,8 @@ public class ConexionBD {
         }
     }
 }
+
+/**
+ *
+ *
+ */

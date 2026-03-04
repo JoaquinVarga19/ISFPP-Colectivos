@@ -110,7 +110,7 @@ public class LineaDAOBD implements LineaDAO {
             if (con != null) {
                 try {
                     con.setAutoCommit(true); // Restauramos el modo de autocommit para futuras operaciones
-                    con.close();
+                    //con.close();
                 } catch (SQLException e) {
                     LOGGER.error("Error al cerrar la conexión en LineaDAOBD...", e);
                 }
@@ -190,7 +190,7 @@ public class LineaDAOBD implements LineaDAO {
              if (con != null) {
                  try {
                      con.setAutoCommit(true); // Restauramos el modo de autocommit para futuras operaciones
-                     con.close();
+                     //con.close();
                  } catch (SQLException e) {
                      LOGGER.error("Error al cerrar la conexión en LineaDAOBD...", e);
                  }
@@ -250,7 +250,7 @@ public class LineaDAOBD implements LineaDAO {
             if (con != null) {
                 try {
                     con.setAutoCommit(true); // Restauramos el modo de autocommit para futuras operaciones
-                    con.close();
+                    //con.close();
                 } catch (SQLException e) {
                     LOGGER.error("Error al cerrar la conexión en LineaDAOBD...", e);
                 }
@@ -309,6 +309,11 @@ public class LineaDAOBD implements LineaDAO {
 
                     if (linea != null && parada != null) {
                         linea.getParadas().add(parada);
+
+                        //Se me olvide de decir sobre las paradas, a que linea perteneces, asi que lo hago aca
+                        if (!parada.getLineas().contains(linea)) {
+                            parada.getLineas().add(linea);
+                        }
                     }
                 }
             }
@@ -343,7 +348,7 @@ public class LineaDAOBD implements LineaDAO {
      */
     private Map<Integer, Parada> cargarParadas() {
         try {
-            ParadaDAO paradaDAO = Factory.getInstancia("PARADA,", ParadaDAO.class);
+            ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
             return paradaDAO.buscarTodos();
         } catch (Exception e) {
             LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en LineaDAO: ", e);

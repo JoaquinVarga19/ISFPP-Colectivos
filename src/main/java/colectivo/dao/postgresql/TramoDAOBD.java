@@ -149,7 +149,7 @@ public class TramoDAOBD implements TramoDAO {
     @Override
     public Map<String, Tramo> buscarTodos() {
         Map<String, Tramo> mapa = new HashMap<>();
-        String sql = "SELECT id_origen, id_destino, duracion, tipo FROM \"colectivo_RW\".tramo";
+        String sql = "SELECT id_origen, id_destino, tiempo, tipo FROM \"colectivo_RW\".tramo";
         try (Connection con = ConexionBD.getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -187,7 +187,7 @@ public class TramoDAOBD implements TramoDAO {
      */
     private Map<Integer, Parada> cargarParadas() {
         try {
-            ParadaDAO paradaDAO = Factory.getInstancia("PARADA,", ParadaDAO.class);
+            ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
             return paradaDAO.buscarTodos();
         } catch (Exception e) {
             LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en TramoDAO: ", e);

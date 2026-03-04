@@ -36,6 +36,10 @@ public class PruebaCalculo {
             Map<String, Tramo> todosLosTramos = tramoDAO.buscarTodos();
             lineaDAO.buscarTodos();
 
+            System.out.println("DEBUG - Paradas en memoria: " + paradaDAO.buscarTodos().size());
+            System.out.println("DEBUG - Tramos en memoria: " + tramoDAO.buscarTodos().size());
+            System.out.println("DEBUG - Lineas en memoria: " + lineaDAO.buscarTodos().size());
+
             // 2. INGRESO DE ORIGEN Y DESTINO
             Parada origen = solicitarParada(sc, todasLasParadas, "ORIGEN");
             Parada destino = solicitarParada(sc, todasLasParadas, "DESTINO");
