@@ -35,6 +35,16 @@ public class TramoDAOBD implements TramoDAO {
     private final Map<Integer, Parada> paradasCargadas;
 
     /**
+     * 
+     */
+    private Map<String, Tramo> tramosMap;
+
+    /**
+     *
+     */
+    private boolean actualizar = true;
+
+    /**
      * Constructor de la clase TramoDAOBD que recibe un mapa de paradas cargadas para su uso en las operaciones de tramos.
      */
     public TramoDAOBD() {
@@ -60,7 +70,12 @@ public class TramoDAOBD implements TramoDAO {
             ps.setInt(3, tramo.getTiempo());
             ps.setInt(4, tramo.getTipo());
 
-            ps.executeUpdate();
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                LOGGER.info("Tramo insertado correctamente en la BD: " + tramo.getInicio().getDireccion() + " a " +
+                        tramo.getFin().getDireccion());
+                actualizar = true;
+            }
 
         } catch (SQLException e) {
             throw new RuntimeException(" Error al insertar el tramo en la BD: " + e);
@@ -92,6 +107,7 @@ public class TramoDAOBD implements TramoDAO {
             if (filasAfectadas > 0) {
                 LOGGER.info("Tramo actualizado correctamente en la BD: " + tramo.getInicio().getDireccion() + " a " +
                         tramo.getFin().getDireccion());
+                actualizar = true;
             } else {
                 LOGGER.warn("No se encontró el tramo para actualizar en la BD: " + tramo.getInicio().getDireccion() +
                         " a " + tramo.getFin().getDireccion());
@@ -125,6 +141,7 @@ public class TramoDAOBD implements TramoDAO {
             int filasAfectadas = ps.executeUpdate();
             if (filasAfectadas > 0) {
                 LOGGER.info("Tramo borrado correctamente en la BD: " + tramo.getInicio().getDireccion() + " a " + tramo.getFin().getDireccion());
+                actualizar = true;
             } else {
                 LOGGER.warn("No se encontró el tramo para borrar en la BD: " + tramo.getInicio().getDireccion() + " a " + tramo.getFin().getDireccion());
             }
@@ -148,6 +165,31 @@ public class TramoDAOBD implements TramoDAO {
      */
     @Override
     public Map<String, Tramo> buscarTodos() {
+        if (actualizar || tramosMap == null) {
+            this.tramosMap = leerDesdeBD();
+            this.actualizar = true;
+        }
+        return this.tramosMap;
+    }
+
+    /**
+     * Metodo para cargar las paradas desde la base de datos, se obtiene una instancia de ParadaDAO desde la Factory
+     * y se llama al metodo buscarTodos() para obtener un mapa con todas las paradas, si ocurre un error al obtener la
+     * instancia de ParadaDAO o al buscar las paradas se captura la excepcion y se registra un mensaje de error en el
+     * logger, devolviendo un mapa vacio en caso de error.
+     * @return mapa con el ID de la parada como clave y el objeto Parada como valor, con todas las paradas encontradas en la base de datos
+     */
+    private Map<Integer, Parada> cargarParadas() {
+        try {
+            ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
+            return paradaDAO.buscarTodos();
+        } catch (Exception e) {
+            LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en TramoDAO: ", e);
+            return Collections.emptyMap();
+        }
+    }
+
+    private Map<String, Tramo> leerDesdeBD() {
         Map<String, Tramo> mapa = new HashMap<>();
         String sql = "SELECT id_origen, id_destino, tiempo, tipo FROM \"colectivo_RW\".tramo";
         try (Connection con = ConexionBD.getConnection();
@@ -176,22 +218,5 @@ public class TramoDAOBD implements TramoDAO {
             throw new RuntimeException("Error al buscar todos los tramos en la BD", e);
         }
         return mapa;
-    }
-
-    /**
-     * Metodo para cargar las paradas desde la base de datos, se obtiene una instancia de ParadaDAO desde la Factory
-     * y se llama al metodo buscarTodos() para obtener un mapa con todas las paradas, si ocurre un error al obtener la
-     * instancia de ParadaDAO o al buscar las paradas se captura la excepcion y se registra un mensaje de error en el
-     * logger, devolviendo un mapa vacio en caso de error.
-     * @return mapa con el ID de la parada como clave y el objeto Parada como valor, con todas las paradas encontradas en la base de datos
-     */
-    private Map<Integer, Parada> cargarParadas() {
-        try {
-            ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
-            return paradaDAO.buscarTodos();
-        } catch (Exception e) {
-            LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en TramoDAO: ", e);
-            return Collections.emptyMap();
-        }
     }
 }

@@ -26,6 +26,16 @@ public class ParadaDAOBD implements ParadaDAO {
     private static final Logger LOGGER = LogManager.getLogger(ParadaDAOBD.class);
 
     /**
+     * Mapa de paradas que almacena la parada como clave el ID de la parada y el objeto Parada como valor
+     */
+    private Map<Integer, Parada> paradasMap;
+
+    /**
+     * Indica si se actualizo la base de datos al realizar el CRUD
+     */
+    private boolean actualizar = true;
+
+    /**
      * En este metodo se inserta una parada en la base de datos, definimos la consulta SQL con los parametros
      * correspondientes, se hace la conexion a la base de datos utilizando ConexionBD.getConnection(),
      * se prepara la consulta con PreparedStatement y seteamos los parametros de la consulta con los datos de la parada
@@ -55,6 +65,7 @@ public class ParadaDAOBD implements ParadaDAO {
 
             if (filasAfectadas > 0) {
                 LOGGER.info("Parada insertada correctamente en la BD: " + parada.getDireccion());
+                this.actualizar = true;
             }
 
         } catch (SQLException e) {
@@ -96,6 +107,7 @@ public class ParadaDAOBD implements ParadaDAO {
                 LOGGER.warn("No se pudo actualizar la parada. No existe la parada con ID: " + parada.getCodigo());
             } else {
                 LOGGER.info("Parada actualizada correctamente en la BD: " + parada.getDireccion());
+                this.actualizar = true;
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al actualizar la parada en la BD: " + e);
@@ -122,7 +134,12 @@ public class ParadaDAOBD implements ParadaDAO {
              PreparedStatement ps = con.prepareStatement(sql);) {
 
             ps.setInt(1, parada.getCodigo());
-            ps.executeUpdate();
+            int filasAfectadas = ps.executeUpdate();
+
+            if (filasAfectadas > 0) {
+                LOGGER.info("Parada eliminada de la BD: " + parada.getCodigo());
+                this.actualizar = true;
+            }
 
         } catch (SQLException e) {
             if (e.getSQLState().equals("23503")) {
@@ -146,6 +163,14 @@ public class ParadaDAOBD implements ParadaDAO {
      */
     @Override
     public Map<Integer, Parada> buscarTodos() {
+        if (actualizar || paradasMap == null) {
+            this.paradasMap = leerDeBD();
+            this.actualizar = false;
+        }
+        return this.paradasMap;
+    }
+
+    private Map<Integer, Parada> leerDeBD() {
         Map<Integer, Parada> mapa = new HashMap<>();
         try (Connection con = ConexionBD.getConnection();
              PreparedStatement ps = con.prepareStatement("SELECT * FROM \"colectivo_RW\".parada");

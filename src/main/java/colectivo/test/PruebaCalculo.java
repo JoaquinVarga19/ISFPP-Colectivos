@@ -30,7 +30,7 @@ public class PruebaCalculo {
             // 1. CARGA DE DATOS DESDE ARCHIVOS
             ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
             TramoDAO tramoDAO = Factory.getInstancia("TRAMO", TramoDAO.class);
-            LineaDAO lineaDAO = Factory.getInstancia("LINEA", colectivo.dao.LineaDAO.class);
+            LineaDAO lineaDAO = Factory.getInstancia("LINEA", LineaDAO.class);
 
             Map<Integer, Parada> todasLasParadas = paradaDAO.buscarTodos();
             Map<String, Tramo> todosLosTramos = tramoDAO.buscarTodos();

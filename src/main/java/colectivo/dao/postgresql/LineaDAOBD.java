@@ -42,6 +42,16 @@ public class LineaDAOBD implements LineaDAO {
     private final Map<Integer, Parada> paradasCargadas;
 
     /**
+     *
+     */
+    private Map<String, Linea> lineasMap;
+
+    /**
+     *
+     */
+    private boolean actualizar = true;
+
+    /**
      * Constructor de la clase LineaDAOBD que recibe un mapa de paradas cargadas para su uso en las operaciones de
      * lineas.
      */
@@ -95,6 +105,7 @@ public class LineaDAOBD implements LineaDAO {
 
             //Guardamos la transaccion si todo salio bien.
             con.commit();
+            this.actualizar = true;
             LOGGER.info("Linea " + linea.getCodigo() + " insertada correctamente en la BD: " + linea.getNombre());
 
         } catch (SQLException e) {
@@ -175,6 +186,7 @@ public class LineaDAOBD implements LineaDAO {
             }
 
             con.commit(); // Guardamos la transacción si todo salió bien
+            this.actualizar = true;
             LOGGER.info("Linea " + linea.getCodigo() + " actualizada correctamente en la BD: " + linea.getNombre());
 
         } catch (SQLException e) {
@@ -236,6 +248,7 @@ public class LineaDAOBD implements LineaDAO {
                 }
             }
             con.commit(); // Guardamos la transacción si todo salió bien
+            this.actualizar = true;
 
         } catch (SQLException e) {
             if (con != null) {
@@ -272,6 +285,31 @@ public class LineaDAOBD implements LineaDAO {
      */
     @Override
     public Map<String, Linea> buscarTodos() {
+        if (actualizar || lineasMap == null) {
+            this.lineasMap = leerDesdeBD(); // El método que ya tienes con toda la lógica SQL
+            this.actualizar = false;
+        }
+        return this.lineasMap;
+    }
+
+    /**
+     * Metodo privado para cargar las paradas desde la base de datos utilizando el ParadaDAO, se obtiene una instancia
+     * del ParadaDAO desde la Factory, y se llama al metodo buscarTodos() para obtener un mapa con todas las paradas
+     * cargadas, con su codigo como clave y al objeto parada como valor.
+     * @return un mapa con todas las paradas cargadas, con su codigo como clave y al objeto parada como valor.
+     */
+    private Map<Integer, Parada> cargarParadas() {
+        try {
+            ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
+            return paradaDAO.buscarTodos();
+        } catch (Exception e) {
+            LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en LineaDAO: ", e);
+            return Collections.emptyMap();
+        }
+    }
+
+
+    private Map<String, Linea> leerDesdeBD() {
         Map<String, Linea> lineasMap = new LinkedHashMap<>();
 
         if (this.paradasCargadas == null || this.paradasCargadas.isEmpty()) {
@@ -338,21 +376,5 @@ public class LineaDAOBD implements LineaDAO {
             throw new RuntimeException("Error fatal en LineaDAOBD", e);
         }
         return lineasMap;
-    }
-
-    /**
-     * Metodo privado para cargar las paradas desde la base de datos utilizando el ParadaDAO, se obtiene una instancia
-     * del ParadaDAO desde la Factory, y se llama al metodo buscarTodos() para obtener un mapa con todas las paradas
-     * cargadas, con su codigo como clave y al objeto parada como valor.
-     * @return un mapa con todas las paradas cargadas, con su codigo como clave y al objeto parada como valor.
-     */
-    private Map<Integer, Parada> cargarParadas() {
-        try {
-            ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
-            return paradaDAO.buscarTodos();
-        } catch (Exception e) {
-            LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en LineaDAO: ", e);
-            return Collections.emptyMap();
-        }
     }
 }
