@@ -43,7 +43,7 @@ public class ConfiguracionGlobal {
         this.properties = new Properties();
         cargarArchivosConfiguracion();
         // Al inicio, cargamos el idioma por defecto definido en el .properties
-        String lenguajeEtiq = properties.getProperty("idioma.actual", "es");
+        String lenguajeEtiq = properties.getProperty("language", "es");
         cambiarIdioma(lenguajeEtiq);
     }
 
@@ -67,9 +67,22 @@ public class ConfiguracionGlobal {
      * @param codigoIdioma Ejemplos: "es", "en", "pt", "fr", "zh"
      */
     public void cambiarIdioma(String codigoIdioma) {
-        this.localeActual = new Locale(codigoIdioma);
-        this.bundle = ResourceBundle.getBundle("labels", localeActual);
-        this.properties.setProperty("idioma.actual", codigoIdioma);
+        // Según tu config.properties: language=ES, country=es
+        // Y la ruta: i18n.labels (que Java traduce a i18n/labels_ES_es.properties)
+        String language = properties.getProperty("language", codigoIdioma);
+        String country = properties.getProperty("country", "");
+        String baseName = properties.getProperty("labels", "i18n.labels");
+
+        this.localeActual = new Locale(language, country);
+
+        try {
+            this.bundle = ResourceBundle.getBundle(baseName, localeActual);
+            LOGGER.info("Idioma cargado: " + localeActual.toString());
+        } catch (Exception e) {
+            LOGGER.severe("No se pudo encontrar el bundle: " + baseName + " para el locale " + localeActual);
+            // Fallback a español si falla
+            this.bundle = ResourceBundle.getBundle("i18n.labels", new Locale("ES"));
+        }
     }
 
     /**
