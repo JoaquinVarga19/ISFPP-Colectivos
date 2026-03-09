@@ -67,21 +67,25 @@ public class ConfiguracionGlobal {
      * @param codigoIdioma Ejemplos: "es", "en", "pt", "fr", "zh"
      */
     public void cambiarIdioma(String codigoIdioma) {
-        // Según tu config.properties: language=ES, country=es
-        // Y la ruta: i18n.labels (que Java traduce a i18n/labels_ES_es.properties)
-        String language = properties.getProperty("language", codigoIdioma);
-        String country = properties.getProperty("country", "");
-        String baseName = properties.getProperty("labels", "i18n.labels");
+        // Si pasamos un código (ej: "en"), usamos ese. Si no, usamos el del config.
+        String lang = (codigoIdioma != null && !codigoIdioma.isEmpty())
+                ? codigoIdioma
+                : properties.getProperty("language", "es");
 
-        this.localeActual = new Locale(language, country);
+        String country = properties.getProperty("country", "ES");
+
+        // IMPORTANTE: ResourceBundle necesita el paquete.nombreBase
+        String baseName = "i18n.labels";
+
+        this.localeActual = new Locale(lang, country);
 
         try {
             this.bundle = ResourceBundle.getBundle(baseName, localeActual);
-            LOGGER.info("Idioma cargado: " + localeActual.toString());
+            LOGGER.info("ResourceBundle cargado con éxito para: " + localeActual);
         } catch (Exception e) {
-            LOGGER.severe("No se pudo encontrar el bundle: " + baseName + " para el locale " + localeActual);
-            // Fallback a español si falla
-            this.bundle = ResourceBundle.getBundle("i18n.labels", new Locale("ES"));
+            LOGGER.severe("ERROR: No se encontró el archivo en resources/i18n/labels" + lang + "_" + country + ".properties");
+            // Fallback manual para que la app no explote
+            this.bundle = ResourceBundle.getBundle("i18n.labels", new Locale("es", "ES"));
         }
     }
 

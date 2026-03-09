@@ -44,28 +44,48 @@ public class InterfazConsolaImpl implements Interfaz {
      */
     @Override
     public void iniciar() {
+        // 1. Verificación de seguridad
         if (coordinadorApp == null) {
-            LOGGER.error("El coordinador de la aplicación no ha sido inicializado. No se puede iniciar la interfaz.");
+            System.err.println("Error: Coordinador no inyectado en la interfaz.");
             return;
         }
-        System.out.println("\n=== " + coordinadorApp.getConfiguracion().getTexto("SISTEMA DE COLECTIVOS ") + " ===");
-        List<Parada> listaParadas = coordinadorApp.getListaParadas();
-        // Convertir a Mapa para compatibilidad con tus métodos actuales
-        Map<Integer, Parada> mapaParadas = new HashMap<>();
-        listaParadas.forEach(p -> mapaParadas.put(p.getCodigo(), p));
 
-        //flujo de ingreso de datos
-        Parada paradaOrigen = ingresarParadaOrigen(mapaParadas);
-        Parada paradaDestino = ingresarParadaDestino(mapaParadas);
-        int diaSemana = ingresarDiaSemana();
-        LocalTime horaLlegada = ingresarHoraDeLlegada();
+        // 2. Título (Esto debería aparecer en tu consola)
+        System.out.println("\n*****************************************");
+        System.out.println("   " + coordinadorApp.getConfiguracion().getTexto("nombre.aplicacion"));
+        System.out.println("*****************************************\n");
 
-        // Ejecutar el cálculo a través del coordinador
-        // Nota: enviamos la hora como String ya que el coordinadorApp lo parsea internamente
-        coordinadorApp.ejecutarCalculo(paradaOrigen, paradaDestino, diaSemana, horaLlegada.toString());
+        // 3. El Bucle Principal (Esto evita que la app se cierre)
+        boolean salir = false;
+        while (!salir) {
+            try {
+                // Obtenemos las paradas del coordinador
+                List<Parada> lista = coordinadorApp.getListaParadas();
+                Map<Integer, Parada> mapa = new HashMap<>();
+                lista.forEach(p -> mapa.put(p.getCodigo(), p));
 
-        // Mostrar los resultados obtenidos
-        resultado(coordinadorApp.getRecorridoSolucion(), paradaOrigen, paradaDestino, diaSemana, horaLlegada);
+                // Pedir datos
+                Parada origen = ingresarParadaOrigen(mapa);
+                Parada destino = ingresarParadaDestino(mapa);
+                int dia = ingresarDiaSemana();
+                LocalTime hora = ingresarHoraDeLlegada();
+
+                // Calcular y mostrar
+                coordinadorApp.ejecutarCalculo(origen, destino, dia, hora.toString());
+                resultado(coordinadorApp.getRecorridoSolucion(), origen, destino, dia, hora);
+
+                System.out.print("\n¿Desea realizar otra consulta? (S/N): ");
+                String respuesta = sc.next();
+                if (respuesta.equalsIgnoreCase("N")) {
+                    salir = true;
+                }
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
+                sc.nextLine(); // Limpiar buffer
+            }
+        }
+        System.out.println("Aplicación finalizada.");
+
     }
 
     /**

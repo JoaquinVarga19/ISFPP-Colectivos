@@ -1,5 +1,6 @@
 package colectivo.servicio;
 
+import colectivo.conexion.Factory;
 import colectivo.controlador.CoordinadorApp;
 import colectivo.interfaz.Interfaz;
 
@@ -20,7 +21,7 @@ public class InterfazServiceImpl implements InterfazService {
      * Constructor de la clase InterfazServiceImpl que inicializa el objeto Interfaz utilizando la fábrica de conexiones.
      */
     public InterfazServiceImpl() {
-        //interfaz = (Interfaz) Factory.getInstancia("INTERFAZ");
+        interfaz = (Interfaz) Factory.getInstancia("INTERFAZ", Interfaz.class);
     }
 
     /**
