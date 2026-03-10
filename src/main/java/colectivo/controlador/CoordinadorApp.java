@@ -7,6 +7,9 @@ import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
 import colectivo.modelo.Tramo;
 import colectivo.negocio.Calculo;
+import colectivo.negocio.CalculoCaminando;
+import colectivo.negocio.CalculoDijkstra;
+import colectivo.negocio.CalculoDirecto;
 import colectivo.servicio.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -100,6 +103,8 @@ public class CoordinadorApp implements ICoordinadorApp{
             // 3. Realizar la carga única de datos (Paradas, Tramos, Líneas) a los Mapas
             cargarDatosUnaVez();
 
+            this.calculo = new Calculo(new CalculoDijkstra());
+
             // 4. Inicializar la lista de soluciones
             this.recorridoSolucion = new ArrayList<>();
 
@@ -131,7 +136,7 @@ public class CoordinadorApp implements ICoordinadorApp{
             this.paradaService = new ParadaServiceImpl();
             this.tramoService = new TramoServiceImpl();
             this.lineaService = new LineaServiceImpl();
-            //this.interfazService = (InterfazService) Factory.getInstancia("INTERFAZ");
+            this.interfazService = new InterfazServiceImpl();
             LOGGER.info("Servicios inicializados correctamente.");
         } catch (Exception e) {
             LOGGER.fatal("Error al inicializar servicios: " + e.getMessage(), e);
@@ -167,7 +172,7 @@ public class CoordinadorApp implements ICoordinadorApp{
      */
     @Override
     public ConfiguracionGlobal getConfiguracion() {
-        return null;
+        return this.configuracion;
     }
 
     /**
@@ -253,20 +258,49 @@ public class CoordinadorApp implements ICoordinadorApp{
      */
     @Override
     public void ejecutarCalculo(Parada origen, Parada destino, int dia, String hora) {
-        if (origen == null || destino == null || dia == -1 || !validarHora(hora)) {
+        if (origen == null || destino == null) {
+            LOGGER.warn("Origen y destino nulos.");
             return;
         }
-        this.recorridoSolucion.clear();
         try {
-            LocalTime horaLocal = LocalTime.parse(hora);
-            List<List<Recorrido>> soluciones = calculo.ejecutarCalculo(origen, destino, dia, horaLocal, mapaTramos);
+            LocalTime hs = LocalTime.parse(hora);
+            //Aqui guardaremos todas las soluciones que encontremos
+            List<List<Recorrido>> todasLasSoluciones = new ArrayList<>();
+            LOGGER.info("Caminando");
+            this.calculo.setEstrategia(new CalculoCaminando());
+            List<List<Recorrido>> rutasCaminando = this.calculo.ejecutarCalculo(origen, destino, dia, hs, this.mapaTramos);
+            if (rutasCaminando != null && !rutasCaminando.isEmpty()) {
+                todasLasSoluciones.addAll(rutasCaminando);
+            }
 
-            this.recorridoSolucion = soluciones;
-            LOGGER.info("Cálculo ejecutado correctamente. Se encontraron {} soluciones.", soluciones.size());
+            //Si las paradas son distintas, tambien buscamos en colectivo
+            if (origen.getCodigo() != destino.getCodigo() ) {
+                //Comparten la misma linea -> vamos directo sin transbordo
+                if (compartenLinea(origen, destino)) {
+                    LOGGER.info("Directo (sin transbordo)");
+                    this.calculo.setEstrategia(new CalculoDirecto());
+                    List<List<Recorrido>> rutasDirectas = this.calculo.ejecutarCalculo(origen, destino, dia, hs, this.mapaTramos);
+                    if (rutasDirectas != null && !rutasDirectas.isEmpty()) {
+                        todasLasSoluciones.addAll(rutasDirectas);
+                    }
+                }
+            }
+
+            // Siempre buscamos también con Dijkstra para ver si hay una ruta más óptima o dar la alternativa
+            LOGGER.info("Con transbordo (Dijkstra)");
+            this.calculo.setEstrategia(new CalculoDijkstra());
+            List<List<Recorrido>> rutasConTransbordo = this.calculo.ejecutarCalculo(origen, destino, dia, hs, this.mapaTramos);
+
+            if (rutasConTransbordo != null && !rutasConTransbordo.isEmpty()) {
+                todasLasSoluciones.addAll(rutasConTransbordo);
+            }
+
+            // Finalmente, guardamos todas las opciones combinadas para que la interfaz las muestre
+            this.recorridoSolucion = todasLasSoluciones;
 
         } catch (Exception e) {
             LOGGER.error("Error al ejecutar cálculo: " + e.getMessage(), e);
-            throw new RuntimeException(configuracion.getTexto("errorCalculo") + e.getMessage());
+            throw new RuntimeException("Error al calcular el recorrido: " + e.getMessage());
         }
     }
 
@@ -316,5 +350,24 @@ public class CoordinadorApp implements ICoordinadorApp{
         this.recorridoSolucion = null;
         // Si hay otros estados o variables que deban ser reseteados, se pueden agregar aquí.
         LOGGER.info("Sistema limpiado. Listo para una nueva búsqueda.");
+    }
+
+    /**
+     * Verifica si existe alguna linea de colectivo que pase tanto por origen como destino.
+     * @param origen
+     * @param destino
+     * @return
+     */
+    private boolean compartenLinea(Parada origen, Parada destino) {
+        if (origen.getLineas() != null && destino.getLineas() != null) {
+            for (Linea lineaOrigen : origen.getLineas()) {
+                for (Linea lineaDestino : destino.getLineas()) {
+                    if (lineaOrigen.getNombre().equals(lineaDestino.getNombre())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

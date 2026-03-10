@@ -1,5 +1,6 @@
 package colectivo.interfaz.impl.consola;
 
+import colectivo.aplicacion.Tiempo;
 import colectivo.controlador.CoordinadorApp;
 import colectivo.interfaz.Interfaz;
 import colectivo.modelo.Parada;
@@ -8,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -52,7 +54,7 @@ public class InterfazConsolaImpl implements Interfaz {
 
         // 2. Título (Esto debería aparecer en tu consola)
         System.out.println("\n*****************************************");
-        System.out.println("   " + coordinadorApp.getConfiguracion().getTexto("nombre.aplicacion"));
+        System.out.println("   " + coordinadorApp.getConfiguracion().getTexto("app.titulo"));
         System.out.println("*****************************************\n");
 
         // 3. El Bucle Principal (Esto evita que la app se cierre)
@@ -105,7 +107,7 @@ public class InterfazConsolaImpl implements Interfaz {
      */
     public Parada ingresarParadaOrigen(Map<Integer, Parada> paradas) {
         System.out.println("===SELECCION DE PARADA DE ORIGEN===");
-        mostrarParadasDisponibles(paradas);
+        //mostrarParadasDisponibles(paradas);
 
         while (true) {
             System.out.println("Ingrese el codigo de la parada de origen: ");
@@ -128,7 +130,7 @@ public class InterfazConsolaImpl implements Interfaz {
      */
     public Parada ingresarParadaDestino(Map<Integer, Parada> paradas) {
         System.out.println("===SELECCION DE PARADA DE DESTINO===");
-        mostrarParadasDisponibles(paradas);
+        //mostrarParadasDisponibles(paradas);
 
         while (true) {
             System.out.println("Ingrese el codigo de la parada de destino: ");
@@ -187,27 +189,49 @@ public class InterfazConsolaImpl implements Interfaz {
     public void resultado(List<List<Recorrido>> listaRecorridos,
                           Parada origen, Parada destino, int dia, LocalTime horaLlegadaParada) {
         System.out.println("\n==============================");
-        System.out.println("Parada origen: " + origen);
-        System.out.println("Parada destino: " + destino);
+        System.out.println("Parada origen: " + origen.getDireccion());
+        System.out.println("Parada destino: " + destino.getDireccion());
         System.out.println("Hora llegada pasajero: " + horaLlegadaParada);
         System.out.println("==============================");
 
-        if (listaRecorridos.isEmpty()) {
-            LOGGER.error("No se encontraron recorridos disponibles para los criterios ingresados.");
+        if (listaRecorridos == null || listaRecorridos.isEmpty()) {
+            System.out.println("No se encontraron recorridos disponibles para los criterios ingresados.");
             return;
         }
+
+        int numeroOpcion = 1;
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("HH:mm");
         for (List<Recorrido> recorrido : listaRecorridos) {
+            System.out.println("\n--- OPCIÓN DE RUTA #" + numeroOpcion + " ---");
+
+            int duracionTotalSegundos = 0;
+            LocalTime reloj = horaLlegadaParada; // Nuestro reloj
+
             for (Recorrido r : recorrido) {
-                String mensajeLinea = r.getLinea() != null ? "Línea: " + r.getLinea().getNombre() : "Caminando" ;
-                System.out.println(mensajeLinea);
-                System.out.println("Paradas: " + r.getOrigen() + " → " + r.getDestino());
-                System.out.println("Hora de salida: " + r.getHoraSalida());
-                System.out.println("Duración: " + r.getDuracion() + " minutos");
-                System.out.println("==========================");
+                String linea = (r.getLinea() != null) ? r.getLinea().getNombre() : "Caminando";
+                System.out.println("Linea: " + linea);
+                System.out.println("Paradas: " + r.getOrigen().getDireccion() + " → " + r.getDestino().getDireccion());
+
+                System.out.println("Hora de salida: " + reloj.format(formato));
+
+                // Usamos nuestra nueva clase para avanzar el reloj
+                reloj = Tiempo.sumarSegundos(reloj, r.getDuracion());
+
+                System.out.println("Hora de llegada: " + reloj.format(formato));
+
+                // Usamos la clase para formatear la duración
+                System.out.println("Duración: " + Tiempo.formatearDuracionTramo(r.getDuracion()) + " min");
+                System.out.println("--------------------------");
+
+                duracionTotalSegundos += r.getDuracion();
             }
-            System.out.println("Duracion total: " + recorrido.stream().mapToInt(Recorrido::getDuracion).sum() + " minutos");
-            System.out.println("Hora de llegada: " + recorrido.get(recorrido.size() - 1).getHoraSalida().plusMinutes(recorrido.get(recorrido.size() - 1).getDuracion()));
-            System.out.println("==============================");
+
+            // Formateamos el tiempo total usando la clase
+            String tiempoTotal = Tiempo.formatearTiempoTotal(duracionTotalSegundos);
+
+            System.out.println(">> TIEMPO TOTAL DE VIAJE: " + tiempoTotal + " hs <<");
+            System.out.println(">> HORA DE LLEGADA AL DESTINO FINAL: " + reloj.format(formato) + " <<\n");
+            numeroOpcion++;
         }
     }
 
