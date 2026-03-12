@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.web.WebView?>
+
+<SplitPane dividerPositions="0.3" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="1187.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="colectivo.interfaz.impl.javafx.controllers.ControladorPantallaPrincipal">
+    <items>
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0" style="-fx-background-color: #fff571;">
+            <children>
+                <VBox alignment="TOP_CENTER" layoutX="5.0" layoutY="2.0" prefHeight="684.0" prefWidth="348.0" spacing="15.0" AnchorPane.bottomAnchor="12.0" AnchorPane.leftAnchor="5.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="2.0">
+                    <children>
+                        <Label style="-fx-font-size: 24px; -fx-font-weight: bold;" text="Sistema de Colectivos" />
+      
+                        <VBox prefHeight="257.0" prefWidth="388.0" spacing="10.0">
+                            <children>
+                                <Label fx:id="parOri" prefHeight="17.0" prefWidth="301.0" text="Parada de origen (ID o nombre)" />
+                                <ComboBox fx:id="comboOrigen" maxWidth="1.7976931348623157E308" prefHeight="25.0" prefWidth="125.0" promptText="Origen" />
+      
+                                <Label fx:id="parDes" prefHeight="17.0" prefWidth="296.0" text="Parada de destino (ID o nombre)" />
+                                <ComboBox fx:id="comboDestino" maxWidth="1.7976931348623157E308" promptText="Destino" />
+                        <Label fx:id="diia" prefHeight="17.0" prefWidth="264.0" text="Dia de la semana (Lunes-Domingo/Feriado o 1-7)" />
+                        <ComboBox fx:id="comboDia" prefHeight="25.0" prefWidth="262.0" promptText="Dia" />
+                        <Label fx:id="horaa" prefHeight="17.0" prefWidth="36.0" text="Hora" />
+                        <ComboBox fx:id="comboHora" prefHeight="25.0" prefWidth="103.0" promptText="Hm:mm" />
+                            </children>
+                            <padding>
+                                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                            </padding>
+                        </VBox>
+
+                        <Button fx:id="btnCalcular" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#calcularRuta" prefHeight="37.0" prefWidth="217.0" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px;" text="Calcular Recorrido" textAlignment="CENTER" />
+
+                        <Label fx:id="resRecor" prefHeight="17.0" prefWidth="140.0" style="-fx-font-weight: bold;" text="Resultados de recorrido" />
+                        <ScrollPane fitToWidth="true" prefHeight="223.0" prefWidth="196.0" VBox.vgrow="ALWAYS">
+                            <content>
+                                <VBox fx:id="vboxResultados" spacing="10.0">
+                                    <padding>
+                                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                    </padding>
+                                </VBox>
+                            </content>
+                        </ScrollPane>
+
+                        <Button fx:id="btnLimpiar" alignment="CENTER" contentDisplay="CENTER" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#limpiarInterfaz" prefHeight="4.0" prefWidth="351.0" style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-weight: bold;" text="Limpiar Interfaz" textAlignment="JUSTIFY" />
+                    </children>
+                </VBox>
+            </children></AnchorPane>
+
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="698.0" prefWidth="821.0" style="-fx-background-color: #fff571;">
+            <children>
+                <WebView fx:id="mapaWebView" layoutX="19.0" layoutY="14.0" nodeOrientation="RIGHT_TO_LEFT" prefHeight="667.0" prefWidth="789.0" AnchorPane.bottomAnchor="17.0" AnchorPane.leftAnchor="19.0" AnchorPane.rightAnchor="18.0" AnchorPane.topAnchor="14.0" />
+            </children></AnchorPane>
+    </items>
+</SplitPane>
