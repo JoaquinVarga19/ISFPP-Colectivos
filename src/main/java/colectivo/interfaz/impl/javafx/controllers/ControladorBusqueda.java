@@ -4,6 +4,7 @@ import colectivo.aplicacion.Constantes;
 import colectivo.controlador.CoordinadorApp;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -12,6 +13,8 @@ import javafx.scene.layout.VBox;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -134,24 +137,38 @@ public class ControladorBusqueda {
         // Le ponemos una "oreja" (Listener) que escucha cada vez que el usuario teclea algo
         comboBox.getEditor().textProperty().addListener((observable, textoViejo,
                                                          textoNuevo) -> {
-            // Si el nuevo texto está vacío, mostramos todos los elementos originales
-            if (textoNuevo == null || textoNuevo.isEmpty()) {
+            // Si el nuevo texto está vacío, mostramos el listado completo.
+            if (textoNuevo == null) {
+                return;
+            }
+
+            // Si el texto ya es una opción válida, no filtramos de nuevo.
+            if (elementosOriginales.contains(textoNuevo)) {
+                return;
+            }
+
+            if (textoNuevo.isEmpty()) {
                 comboBox.getItems().setAll(elementosOriginales);
                 return;
             }
 
-            // Lista temporal para guardar los elementos que coinciden con el texto nuevo
-            List<String> elementosFiltrados = new ArrayList<>();
+            List<String> filtrados = new ArrayList<>();
             for (String item : elementosOriginales) {
                 if (item.toLowerCase().contains(textoNuevo.toLowerCase())) {
-                    elementosFiltrados.add(item);
+                    filtrados.add(item);
                 }
             }
 
-            // Actualizamos el ComboBox con los elementos filtrados
-            javafx.application.Platform.runLater(() -> {
-                comboBox.getItems().setAll(elementosFiltrados);
-                comboBox.show();
+            Platform.runLater(() -> {
+                // Guardamos el texto visible antes de actualizar la lista para forzar a JavaFX a mantenerlo
+                String textoActual = comboBox.getEditor().getText();
+                comboBox.getItems().setAll(filtrados);
+                comboBox.getEditor().setText(textoActual);
+
+                if (!filtrados.isEmpty() && comboBox.getScene() != null && comboBox.getScene().getWindow().isFocused()) {
+                    comboBox.show();
+                }
+
             });
         });
     }
@@ -204,7 +221,7 @@ public class ControladorBusqueda {
 
             List<List<Recorrido>> soluciones = coordinador.getRecorridoSolucion();
 
-            mostrarTarjetasDeResultados(soluciones); // (Para la Etapa 3)
+            mostrarTarjetasDeResultados(soluciones, textoHora); // (Para la Etapa 3)
 
         } catch (Exception e) {
             LOGGER.error("Error al calcular: " + e.getMessage(), e);
@@ -228,17 +245,26 @@ public class ControladorBusqueda {
 
         try {
             String[] partes = texto.split(" - ");
-            return Integer.parseInt(partes[0].trim());
-        } catch (Exception e) {
-            for (String opcion : opcionesOriginales) {
-                if (opcion.toLowerCase().contains(texto.toLowerCase())) {
-                    try {
-                        String[] partesOpcion = opcion.split(" - ");
-                        return Integer.parseInt(partesOpcion[0].trim());
-                    } catch (Exception ignored) {}
-                }
+            String soloNumeros = partes[0].replaceAll("[^0-9]", "");
+
+            if (!soloNumeros.isEmpty()) {
+                return Integer.parseInt(soloNumeros);
+            }
+        } catch (Exception ignored) {}
+
+        // Si falla (porque tipeó solo letras), buscamos la coincidencia en la lista original
+        for (String opcion : opcionesOriginales) {
+            if (opcion.toLowerCase().contains(texto.toLowerCase().trim())) {
+                try {
+                    String[] partes = opcion.split(" - ");
+                    String soloNumerosOpcion = partes[0].replaceAll("[^0-9]", "");
+                    if (!soloNumerosOpcion.isEmpty()) {
+                        return Integer.parseInt(soloNumerosOpcion);
+                    }
+                } catch (Exception ignored) {}
             }
         }
+
         LOGGER.warn("No se pudo deducir el ID para el texto escrito: " + texto);
         return -1;
     }
@@ -262,7 +288,7 @@ public class ControladorBusqueda {
         comboDia.getItems().setAll(listaDiasOriginales);
 
         vboxResultados.getChildren().clear();
-        // controladorMapa.limpiarRutas(); // (Para la Etapa 3)
+        controladorMapa.limpiarRutas(); // (Para la Etapa 3)
     }
 
     /**
@@ -290,22 +316,44 @@ public class ControladorBusqueda {
      * Dibuja las tarjetas visuales de resultados de recorridos.
      * @param soluciones
      */
-    private void mostrarTarjetasDeResultados(List<List<Recorrido>> soluciones) {
+    /**
+     * Dibuja las tarjetas visuales de resultados de recorridos detallando paso a paso.
+     * @param soluciones La lista con las opciones de rutas encontradas.
+     * @param textoHora La hora elegida por el usuario en el buscador (Ej: "17:00").
+     */
+    private void mostrarTarjetasDeResultados(List<List<Recorrido>> soluciones, String textoHora) {
         vboxResultados.getChildren().clear();
+
+        // Limpiamos las líneas viejas del mapa
+        if (controladorMapa != null) {
+            controladorMapa.limpiarRutas();
+        }
 
         if (soluciones == null || soluciones.isEmpty()) {
             mostrarMensajeEnPantalla("No se encontraron rutas disponibles para los parámetros seleccionados.", true);
             return;
         }
 
+        // 1. Configuramos nuestro "Reloj Virtual" y el formato
+        LocalTime horaIngresada;
+        try {
+            horaIngresada = LocalTime.parse(textoHora);
+        } catch (Exception e) {
+            horaIngresada = LocalTime.of(0,0);
+        }
+        DateTimeFormatter formatoHora = DateTimeFormatter.ofPattern("HH:mm");
+
         int contadorTransbordo = 0;
         int contadorDirecto = 0;
+        int numeroOpcion = 1;
 
+        // Recorremos cada OPCIÓN DE RUTA principal
         for (List<Recorrido> opcion : soluciones) {
             if (opcion == null || opcion.isEmpty()) {
                 continue;
             }
 
+            // Deducción del tipo de ruta para el color y título
             Set<String> lineasUsadas = new HashSet<>();
             boolean esCaminando = false;
 
@@ -317,59 +365,135 @@ public class ControladorBusqueda {
                 }
             }
 
-            String tipoRuta;
             String colorTarjeta;
             String textoTitulo;
 
             if (esCaminando) {
-                tipoRuta = "Caminando";
                 colorTarjeta = Constantes.COLOR_CAMINANDO;
                 textoTitulo = "Caminando";
             } else if (lineasUsadas.size() > 1) {
-                tipoRuta = "Con Transbordo";
                 contadorTransbordo++;
                 colorTarjeta = (contadorTransbordo == 1) ? Constantes.COLOR_DIJKSTRA_1 :
                         (contadorTransbordo == 2) ? Constantes.COLOR_DIJKSTRA_2 : Constantes.COLOR_DIJKSTRA_3;
                 textoTitulo = "Lineas " + String.join(" - ", lineasUsadas) + " (Con Transbordo)";
             } else {
-                tipoRuta = "Directo";
                 contadorDirecto++;
                 colorTarjeta = (contadorDirecto == 1) ? Constantes.COLOR_DIRECTO_1 :
                         (contadorDirecto == 2) ? Constantes.COLOR_DIRECTO_2 : Constantes.COLOR_DIRECTO_3;
                 textoTitulo = "Linea " + lineasUsadas.iterator().next() + " (Directo)";
             }
 
-            //Maqueta de la tarjeta
-            VBox tarjeta = new VBox();
-            tarjeta.setStyle("-fx-background-color: #ffffff; -fx-border-color: #cccccc; -fx-border-radius: 10px; " +
-                    "-fx-background-radius: 10px; -fx-padding: 15px; -fx-spacing: 5px; " +
+            // --- A. MAQUETA DE LA TARJETA PRINCIPAL (El contenedor general) ---
+            VBox tarjetaOpcion = new VBox();
+            tarjetaOpcion.setStyle("-fx-background-color: #ffffff; -fx-border-color: #cccccc; -fx-border-radius: 10px; " +
+                    "-fx-background-radius: 10px; -fx-padding: 15px; -fx-spacing: 15px; " +
                     "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);");
-            VBox.setMargin(tarjeta, new javafx.geometry.Insets(10, 0, 15, 0));
+            VBox.setMargin(tarjetaOpcion, new javafx.geometry.Insets(10, 0, 25, 0));
 
-            //titulo de color
-            Label lblTitulo = new Label(textoTitulo);
+            // Título de color: "OPCIÓN DE RUTA #1 | Linea 1 (Directo)"
+            Label lblTitulo = new Label("OPCIÓN DE RUTA " + numeroOpcion + " | " + textoTitulo);
             lblTitulo.setStyle("-fx-background-color: " + colorTarjeta + "; -fx-text-fill: #ffffff; " +
                     "-fx-font-weight: bold; -fx-padding: 5px 10px; -fx-background-radius: 5px;");
-            tarjeta.getChildren().add(lblTitulo);
+            tarjetaOpcion.getChildren().add(lblTitulo);
 
-            //Datos tarjeta
-            String direccionOrigen = opcion.get(0).getOrigen().getDireccion();
-            String direccionDestino = opcion.get(opcion.size() - 1).getDestino().getDireccion();
-            tarjeta.getChildren().add(crearFilaInformacion("Paradas:", direccionOrigen + " → " + direccionDestino));
 
-            //hora salida
-            tarjeta.getChildren().add(crearFilaInformacion("Hora de salida:", opcion.get(0).getHoraSalida().toString()));
+            // --- B. MAQUETA DE LOS TRAMOS INTERNOS (El desglose paso a paso) ---
+            VBox contenedorTramos = new VBox();
+            contenedorTramos.setSpacing(10); // Separación entre tramos
 
-            //Duracion total
+            LocalTime reloj = horaIngresada; // Sincronizamos el reloj a la hora de salida
             int duracionTotalSegundos = 0;
+
+            // Bucle que dibuja los pasos individuales (Parada por Parada)
             for (Recorrido r : opcion) {
+                VBox miniTarjeta = new VBox();
+                // Borde gris claro solo abajo (esto reemplaza los guiones "-------")
+                miniTarjeta.setStyle("-fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 10 0;");
+
+                // 1. Línea
+                //String nombreLinea = (r.getLinea() != null && !r.getLinea().getNombre().equalsIgnoreCase("Caminando"))
+                  //      ? "Linea " + r.getLinea().getNombre() : "A PIE";
+                //miniTarjeta.getChildren().add(crearFilaInformacion("Linea:", nombreLinea));
+                String nombreLinea;
+                if (r.getLinea() == null || r.getLinea().getNombre().equalsIgnoreCase("Caminando")) {
+                    nombreLinea = "Caminando"; // Unificamos todo a "Caminando"
+                } else {
+                    nombreLinea = "Línea " + r.getLinea().getNombre();
+                }
+
+                miniTarjeta.getChildren().add(crearFilaInformacion("Línea:", nombreLinea));
+
+                // 2. Paradas del tramo
+                String origenTramo = r.getOrigen().getDireccion();
+                String destinoTramo = r.getDestino().getDireccion();
+                miniTarjeta.getChildren().add(crearFilaInformacion("Paradas:", origenTramo + " → " + destinoTramo));
+
+                // 3. Hora de salida
+                miniTarjeta.getChildren().add(crearFilaInformacion("Hora de salida:", reloj.format(formatoHora)));
+
+                // 4. Hacemos avanzar el tiempo del reloj sumando la duración de este tramo
+                reloj = reloj.plusSeconds(r.getDuracion());
+
+                // 5. Hora de llegada
+                miniTarjeta.getChildren().add(crearFilaInformacion("Hora de llegada:", reloj.format(formatoHora)));
+
+                // 6. Duración del tramo individual
+                int minTramo = r.getDuracion() / 60;
+                miniTarjeta.getChildren().add(crearFilaInformacion("Duracion:", String.format("%02d min", minTramo)));
+
+                // Pegamos este tramo al contenedor y sumamos el tiempo general
+                contenedorTramos.getChildren().add(miniTarjeta);
                 duracionTotalSegundos += r.getDuracion();
             }
-            int minutos = duracionTotalSegundos / 60;
-            tarjeta.getChildren().add(crearFilaInformacion("Duración total:", minutos + " min"));
 
-            //agregar tarjeta a pantalla
-            vboxResultados.getChildren().add(tarjeta);
+            // Pegamos todos los tramos a la tarjeta principal
+            tarjetaOpcion.getChildren().add(contenedorTramos);
+
+
+            // --- C. MAQUETA DEL FOOTER (Resumen total del viaje) ---
+            VBox footer = new VBox();
+            // Le damos un fondo gris clarito para que destaque del resto
+            footer.setStyle("-fx-background-color: #f8f9fa; -fx-padding: 10px; -fx-background-radius: 5px; -fx-spacing: 5px;");
+
+            // Matemática para transformar segundos totales a formato HH:mm
+            int horasTotales = duracionTotalSegundos / 3600;
+            int minTotales = (duracionTotalSegundos % 3600) / 60;
+            String textoTiempoTotal = String.format("%02d:%02d", horasTotales, minTotales);
+
+            Label lblTotalViaje = new Label(">> TIEMPO TOTAL DE VIAJE: " + textoTiempoTotal + " hs <<");
+            lblTotalViaje.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333;");
+
+            // Como el 'reloj' avanzó en cada tramo, su valor actual es la hora exacta de llegada final
+            Label lblLlegadaFinal = new Label(">> HORA DE LLEGADA AL DESTINO FINAL: " + reloj.format(formatoHora) + " <<");
+            lblLlegadaFinal.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333;");
+
+            footer.getChildren().addAll(lblTotalViaje, lblLlegadaFinal);
+            tarjetaOpcion.getChildren().add(footer);
+
+            // Agregar la tarjeta completa (Título + Tramos + Footer) a la pantalla
+            vboxResultados.getChildren().add(tarjetaOpcion);
+
+            //Hacemos un puente con javascript
+            StringBuilder coordsBuilder = new StringBuilder();
+
+            // Para cada tramo de esta opción, vamos a extraer las coordenadas de origen y destino para dibujar la ruta en el mapa.
+            for (Recorrido r : opcion) {
+                coordsBuilder.append(r.getOrigen().getLatitud()).append(",")
+                        .append(r.getOrigen().getLongitud()).append(";");
+            }
+
+            Recorrido ultimoTramo = opcion.get(opcion.size() - 1);
+            coordsBuilder.append(ultimoTramo.getDestino().getLatitud()).append(",")
+                    .append(ultimoTramo.getDestino().getLongitud());
+
+            String datosParaMapa = coordsBuilder.toString() + "|" + colorTarjeta;
+
+            if (controladorMapa != null) {
+                controladorMapa.dibujarRutas(datosParaMapa);
+            }
+
+            numeroOpcion++; // Avanzamos el contador para la próxima Opción
+
         }
     }
 

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Colectivos</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+
+    <style>
+        body { padding: 0; margin: 0; }
+        html, body, #mapa { height: 100%; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="mapa"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<script>
+    // Inicializamos el mapa centrado en la zona de Madryn/Rawson (Zoom 12)
+    var map = L.map('mapa').setView([-43.3002, -65.1023], 14);
+
+    // Acá es donde nos conectamos a OpenStreetMap para bajar las imágenes de las calles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // --- FUNCIONES PARA EL PASO 3 (Preparando el terreno) ---
+
+    // Función de prueba para ver si Java nos puede hablar
+    function saludarDesdeJava(mensaje) {
+        console.log("Java dice: " + mensaje);
+        alert("El mapa recibió este mensaje de Java: " + mensaje);
+    }
+
+    // Esta variable va a guardar las líneas que dibujemos para poder borrarlas después
+        var capaRutas = L.layerGroup().addTo(map);
+
+    /**
+    * Esta es la función clave que Java va a llamar.
+    * Recibe un texto largo con las coordenadas y el color.
+    * Formato esperado: "lat1,lng1;lat2,lng2;lat3,lng3|#ff5c00"
+    */
+        function dibujarRutaDesdeJava(datosRuta) {
+            // Separamos las coordenadas del color usando la barrita vertical "|"
+            var partes = datosRuta.split("|");
+            var textoCoordenadas = partes[0];
+            var colorRuta = partes[1];
+
+            // Convertimos el texto "lat,lng;lat,lng" a una lista real de coordenadas
+            var pares = textoCoordenadas.split(";");
+            var puntosLeaflet = [];
+
+            for (var i = 0; i < pares.length; i++) {
+                if (pares[i].trim() !== "") {
+                    var latLng = pares[i].split(",");
+                    var lat = parseFloat(latLng[0]);
+                    var lng = parseFloat(latLng[1]);
+                    puntosLeaflet.push([lat, lng]);
+
+                    // --- NUEVO: Dibujamos el "puntito negro" para cada parada ---
+                    var puntito = L.circleMarker([lat, lng], {
+                        color: '#000000',   // Borde negro
+                        fillColor: '#ffffff', // Centro blanco
+                        fillOpacity: 1,
+                        radius: 4,          // Tamaño del puntito
+                        weight: 2           // Grosor del borde
+                    });
+                    capaRutas.addLayer(puntito);
+                }
+            }
+
+            // Dibujamos la línea en el mapa con el color que nos pasó Java
+            var linea = L.polyline(puntosLeaflet, {
+                color: colorRuta,
+                weight: 5,     // Grosor de la línea
+                opacity: 0.8   // Un poco transparente para que se vean los nombres de las calles
+            });
+
+            // Si es un tramo "Caminando" (Amarillo), la hacemos punteada
+            if (colorRuta === "#edb900") {
+                linea.setStyle({ dashArray: '10, 10' });
+            }
+
+            // Agregamos la línea al mapa y centramos la vista para que se vea entera
+            capaRutas.addLayer(linea);
+            map.fitBounds(linea.getBounds());
+        }
+
+        // Función para borrar las rutas anteriores cuando el usuario hace una nueva búsqueda
+        function limpiarMapaDesdeJava() {
+            capaRutas.clearLayers();
+        }
+
+
+
+</script>
+</body>
+</html>

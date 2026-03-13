@@ -1,5 +1,6 @@
 package colectivo.interfaz.impl.javafx.controllers;
 
+import colectivo.aplicacion.ConfiguracionGlobal;
 import colectivo.controlador.Coordinable;
 import colectivo.controlador.CoordinadorApp;
 import javafx.event.ActionEvent;
@@ -7,9 +8,9 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
-import javafx.scene.control.Label;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -95,6 +96,19 @@ public class ControladorPantallaPrincipal implements Initializable, Coordinable 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         System.out.println("Inicializando interfaz");
+
+        ConfiguracionGlobal configIdioma = new ConfiguracionGlobal();
+
+        btnCalcular.setText(configIdioma.getTexto("btn.calcular"));
+        btnLimpiar.setText(configIdioma.getTexto("btn.limpiar"));
+
+        // Si tenés los ComboBox con un texto por defecto (Prompt Text), también lo cambiás así:
+        comboOrigen.setPromptText(configIdioma.getTexto("label.origen"));
+        comboDestino.setPromptText(configIdioma.getTexto("label.destino"));
+        comboDia.setPromptText(configIdioma.getTexto("label.dia"));
+        comboHora.setPromptText(configIdioma.getTexto("label.hora"));
+
+
 
         this.controladorMapa = new ControladorMapa(mapaWebView);
 
