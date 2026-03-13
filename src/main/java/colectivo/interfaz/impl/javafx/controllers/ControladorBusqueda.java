@@ -1,10 +1,13 @@
 package colectivo.interfaz.impl.javafx.controllers;
 
+import colectivo.aplicacion.Constantes;
 import colectivo.controlador.CoordinadorApp;
 import colectivo.modelo.Parada;
+import colectivo.modelo.Recorrido;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -88,8 +91,8 @@ public class ControladorBusqueda {
     private void inicializarCombosEstaticos() {
         LOGGER.info("Inicializando combos estáticos (Días y Horas)...");
         listaDiasOriginales.clear();
-        listaDiasOriginales.addAll(Arrays.asList("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado",
-                "Domingo/Feriado"));
+        listaDiasOriginales.addAll(Arrays.asList("1 - Lunes", "2 - Martes", "3 - Miércoles", " 4 - Jueves", "5 - Viernes", "6 - Sábado",
+                "7 - Domingo/Feriado"));
 
         configurarBuscador(comboDia, listaDiasOriginales);
 
@@ -172,9 +175,9 @@ public class ControladorBusqueda {
             return;
         }
 
-        int idOrigen = extraerDelTexto(textoOrigen);
-        int idDestino = extraerDelTexto(textoDestino);
-        int idDia = extraerDelTexto(textoDia);
+        int idOrigen = extraerIdDeTextoInteligente(textoOrigen, listaParadasOriginales);
+        int idDestino = extraerIdDeTextoInteligente(textoDestino, listaParadasOriginales);
+        int idDia = extraerIdDeTextoInteligente(textoDia, listaDiasOriginales);
 
         if (idOrigen == -1 || idDestino == -1 || idDia == -1) {
             mostrarMensajeEnPantalla("ERROR: Por favor, seleccione opciones válidas para origen, destino y día.", true);
@@ -188,23 +191,56 @@ public class ControladorBusqueda {
 
         mostrarMensajeEnPantalla("¡Validación exitosa! Buscando ruta de" + idOrigen + " a " + idDestino + "...", false);
 
-        //coordinador.ejecutarCalculo(idOrigen, idDestino, idDia, textoHora);
+        /**
+         *Llamamos a la cocina (coordinador) para que haga el trabajo pesado de calcular la ruta, horarios, etc. y
+         * luego mostrarlo en pantalla.
+         */
+        Parada paradaOrigen = mapaParadas.get(idOrigen);
+        Parada paradaDestino = mapaParadas.get(idDestino);
+        try {
+            mostrarMensajeEnPantalla("Calculando ruta, por favor espere...", false);
+
+            coordinador.ejecutarCalculo(paradaOrigen, paradaDestino, idDia, textoHora);
+
+            List<List<Recorrido>> soluciones = coordinador.getRecorridoSolucion();
+
+            mostrarTarjetasDeResultados(soluciones); // (Para la Etapa 3)
+
+        } catch (Exception e) {
+            LOGGER.error("Error al calcular: " + e.getMessage(), e);
+            mostrarMensajeEnPantalla("Ocurrió un error al buscar la ruta. Por favor, intente nuevamente.", true);
+        }
     }
 
     /**
      * Método auxiliar para extraer el código de parada del texto seleccionado en el ComboBox.
      * ejemplo: si el texto es "123 - Av. Siempre Viva 742", este método debería devolver "123".
+     * Ahora lo hacemos de forma inteligente. Si el texto está incompleto, busca la coincidencia
+     * en las listas originales para deducir qué
+     * opción quería el usuario.
      * @param texto
      * @return
      */
-    private int extraerDelTexto(String texto) {
+    private int extraerIdDeTextoInteligente(String texto, List<String> opcionesOriginales) {
+        if (texto == null || texto.trim().isEmpty()) {
+            return -1;
+        }
+
         try {
             String[] partes = texto.split(" - ");
             return Integer.parseInt(partes[0].trim());
         } catch (Exception e) {
-            LOGGER.error("Error al extraer el código de parada del texto: " + texto, e);
-            return -1; // Indicamos un error con un código inválido
+            for (String opcion : opcionesOriginales) {
+                if (opcion.toLowerCase().contains(texto.toLowerCase())) {
+                    try {
+                        String[] partesOpcion = opcion.split(" - ");
+                        return Integer.parseInt(partesOpcion[0].trim());
+                    } catch (Exception ignored) {}
+                }
+            }
         }
+        LOGGER.warn("No se pudo deducir el ID para el texto escrito: " + texto);
+        return -1;
     }
 
     /**
@@ -248,5 +284,111 @@ public class ControladorBusqueda {
         }
 
         vboxResultados.getChildren().add(etiqueta);
+    }
+
+    /**
+     * Dibuja las tarjetas visuales de resultados de recorridos.
+     * @param soluciones
+     */
+    private void mostrarTarjetasDeResultados(List<List<Recorrido>> soluciones) {
+        vboxResultados.getChildren().clear();
+
+        if (soluciones == null || soluciones.isEmpty()) {
+            mostrarMensajeEnPantalla("No se encontraron rutas disponibles para los parámetros seleccionados.", true);
+            return;
+        }
+
+        int contadorTransbordo = 0;
+        int contadorDirecto = 0;
+
+        for (List<Recorrido> opcion : soluciones) {
+            if (opcion == null || opcion.isEmpty()) {
+                continue;
+            }
+
+            Set<String> lineasUsadas = new HashSet<>();
+            boolean esCaminando = false;
+
+            for (Recorrido r : opcion) {
+                if (r.getLinea() == null || r.getLinea().getNombre().equalsIgnoreCase("Caminando")) {
+                    esCaminando = true;
+                } else {
+                    lineasUsadas.add(r.getLinea().getNombre());
+                }
+            }
+
+            String tipoRuta;
+            String colorTarjeta;
+            String textoTitulo;
+
+            if (esCaminando) {
+                tipoRuta = "Caminando";
+                colorTarjeta = Constantes.COLOR_CAMINANDO;
+                textoTitulo = "Caminando";
+            } else if (lineasUsadas.size() > 1) {
+                tipoRuta = "Con Transbordo";
+                contadorTransbordo++;
+                colorTarjeta = (contadorTransbordo == 1) ? Constantes.COLOR_DIJKSTRA_1 :
+                        (contadorTransbordo == 2) ? Constantes.COLOR_DIJKSTRA_2 : Constantes.COLOR_DIJKSTRA_3;
+                textoTitulo = "Lineas " + String.join(" - ", lineasUsadas) + " (Con Transbordo)";
+            } else {
+                tipoRuta = "Directo";
+                contadorDirecto++;
+                colorTarjeta = (contadorDirecto == 1) ? Constantes.COLOR_DIRECTO_1 :
+                        (contadorDirecto == 2) ? Constantes.COLOR_DIRECTO_2 : Constantes.COLOR_DIRECTO_3;
+                textoTitulo = "Linea " + lineasUsadas.iterator().next() + " (Directo)";
+            }
+
+            //Maqueta de la tarjeta
+            VBox tarjeta = new VBox();
+            tarjeta.setStyle("-fx-background-color: #ffffff; -fx-border-color: #cccccc; -fx-border-radius: 10px; " +
+                    "-fx-background-radius: 10px; -fx-padding: 15px; -fx-spacing: 5px; " +
+                    "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);");
+            VBox.setMargin(tarjeta, new javafx.geometry.Insets(10, 0, 15, 0));
+
+            //titulo de color
+            Label lblTitulo = new Label(textoTitulo);
+            lblTitulo.setStyle("-fx-background-color: " + colorTarjeta + "; -fx-text-fill: #ffffff; " +
+                    "-fx-font-weight: bold; -fx-padding: 5px 10px; -fx-background-radius: 5px;");
+            tarjeta.getChildren().add(lblTitulo);
+
+            //Datos tarjeta
+            String direccionOrigen = opcion.get(0).getOrigen().getDireccion();
+            String direccionDestino = opcion.get(opcion.size() - 1).getDestino().getDireccion();
+            tarjeta.getChildren().add(crearFilaInformacion("Paradas:", direccionOrigen + " → " + direccionDestino));
+
+            //hora salida
+            tarjeta.getChildren().add(crearFilaInformacion("Hora de salida:", opcion.get(0).getHoraSalida().toString()));
+
+            //Duracion total
+            int duracionTotalSegundos = 0;
+            for (Recorrido r : opcion) {
+                duracionTotalSegundos += r.getDuracion();
+            }
+            int minutos = duracionTotalSegundos / 60;
+            tarjeta.getChildren().add(crearFilaInformacion("Duración total:", minutos + " min"));
+
+            //agregar tarjeta a pantalla
+            vboxResultados.getChildren().add(tarjeta);
+        }
+    }
+
+    /**
+     * Método auxiliar para crear las filas de texto, le damos color a la etiqueta y al valor, y lo usamos para mostrar
+     * la información de cada tramo en las tarjetas de resultados.
+     * @return
+     */
+    private HBox crearFilaInformacion(String etiqueta, String valor) {
+        HBox fila = new HBox();
+        fila.setSpacing(5);
+
+        Label lblEtiqueta = new Label(etiqueta);
+        lblEtiqueta.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333;");
+
+        Label lblValor = new Label(valor);
+        lblValor.setStyle("-fx-text-fill: #666666;");
+
+        fila.getChildren().addAll(lblEtiqueta, lblValor);
+        return fila;
     }
 }
