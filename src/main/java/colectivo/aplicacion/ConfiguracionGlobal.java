@@ -63,18 +63,17 @@ public class ConfiguracionGlobal {
     }
 
     /**
-     *Este mé7odo es la clave. Permite cambiar el idioma en tiempo de ejecución.
-     * @param codigoIdioma Ejemplos: "es", "en", "pt", "fr", "zh"
+     *Este método es la clave. Permite cambiar el idioma en tiempo de ejecución.
+     * @param codigoIdioma Ejemplos: "es", "en", "pt", "fr".
+     * El idioma y pais en español estan por defecto.
+     * Si el código de idioma es nulo o vacío, se usará el idioma definido en el archivo de configuración (config.properties).
      */
     public void cambiarIdioma(String codigoIdioma) {
-        // Si pasamos un código (ej: "en"), usamos ese. Si no, usamos el del config.
         String lang = (codigoIdioma != null && !codigoIdioma.isEmpty())
                 ? codigoIdioma
                 : properties.getProperty("language", "es");
-
         String country = properties.getProperty("country", "ES");
 
-        // IMPORTANTE: ResourceBundle necesita el paquete.nombreBase
         String baseName = "i18n.labels";
 
         this.localeActual = new Locale(lang, country);
@@ -84,7 +83,7 @@ public class ConfiguracionGlobal {
             LOGGER.info("ResourceBundle cargado con éxito para: " + localeActual);
         } catch (Exception e) {
             LOGGER.severe("ERROR: No se encontró el archivo en resources/i18n/labels" + lang + "_" + country + ".properties");
-            // Fallback manual para que la app no explote
+
             this.bundle = ResourceBundle.getBundle("i18n.labels", new Locale("es", "ES"));
         }
     }
@@ -98,8 +97,8 @@ public class ConfiguracionGlobal {
 
     /**
      * Este método es para obtener el valor de una propiedad a partir de su clave, usando el Properties cargado.
-     * @param clave
-     * @return
+     * @param clave Ejemplo: "nombre.aplicacion", "idioma.actual", etc.
+     * @return El valor de la propiedad correspondiente a la clave, o null si no se encuentra.
      */
     public String getProperty(String clave) {
         return properties.getProperty(clave);
@@ -109,7 +108,7 @@ public class ConfiguracionGlobal {
      * Este método es para obtener el Locale actual que se está usando para cargar el ResourceBundle, lo cual puede
      * ser útil para mostrar el idioma actual en la interfaz de usuario o para otras operaciones relacionadas con la
      * localización.
-     * @return
+     * @return El Locale actual que se está usando para cargar el ResourceBundle.
      */
     public Locale getLocaleActual() {
         return localeActual;
@@ -118,16 +117,27 @@ public class ConfiguracionGlobal {
     /**
      * Este método es para obtener el ResourceBundle cargado, lo cual puede ser útil para acceder a los textos traducidos
      * desde otras partes de la aplicación.
-     * @return
+     * @return El ResourceBundle cargado que contiene los textos traducidos para el idioma actual.
      */
     public ResourceBundle getBundle() {
         return bundle;
     }
 
+    /**
+     * Este método es para obtener el código del idioma actual que se está usando para cargar el ResourceBundle,
+     * lo cual puede ser útil para mostrar el idioma actual en la interfaz de usuario o para otras operaciones
+     * relacionadas con la localización.
+     * @return El código del idioma actual que se está usando para cargar el ResourceBundle, o null si no se encuentra
+     * en las propiedades.
+     */
     public String getIdiomaActual() {
         return properties.getProperty("idioma.actual");
     }
 
+    /**
+     * Este método es para obtener el nombre de la aplicación.
+     * @return El nombre de la aplicación definido en las propiedades, o null si no se encuentra.
+     */
     public String getNombreAplicacion() {
         return properties.getProperty("nombre.aplicacion");
     }

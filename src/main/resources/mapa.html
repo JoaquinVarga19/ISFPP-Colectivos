@@ -43,49 +43,79 @@
     * Esta es la función clave que Java va a llamar.
     * Recibe un texto largo con las coordenadas y el color.
     * Formato esperado: "lat1,lng1;lat2,lng2;lat3,lng3|#ff5c00"
+    * Dibuja la ruta llamando a OSRM para seguir el trayecto real de las calles.
     */
-        function dibujarRutaDesdeJava(datosRuta) {
-            // Separamos las coordenadas del color usando la barrita vertical "|"
+       function dibujarRutaDesdeJava(datosRuta) {
             var partes = datosRuta.split("|");
             var textoCoordenadas = partes[0];
             var colorRuta = partes[1];
 
-            // Convertimos el texto "lat,lng;lat,lng" a una lista real de coordenadas
             var pares = textoCoordenadas.split(";");
-            var puntosLeaflet = [];
+            var puntosLeaflet = []; // Para dibujar puntitos y fallback
+            var osrmCoords = [];    // Para pedirle a la API (usa lng,lat)
 
+            // 1. Armamos las listas de coordenadas
             for (var i = 0; i < pares.length; i++) {
                 if (pares[i].trim() !== "") {
                     var latLng = pares[i].split(",");
                     var lat = parseFloat(latLng[0]);
                     var lng = parseFloat(latLng[1]);
-                    puntosLeaflet.push([lat, lng]);
 
-                    // --- NUEVO: Dibujamos el "puntito negro" para cada parada ---
+                    puntosLeaflet.push([lat, lng]);
+                    osrmCoords.push(lng + "," + lat); // OSRM requiere primero la longitud
+
+                    // Dibujamos el puntito de la parada (tu código anterior)
                     var puntito = L.circleMarker([lat, lng], {
-                        color: '#000000',   // Borde negro
-                        fillColor: '#ffffff', // Centro blanco
-                        fillOpacity: 1,
-                        radius: 4,          // Tamaño del puntito
-                        weight: 2           // Grosor del borde
+                        color: '#000000', fillColor: '#ffffff', fillOpacity: 1, radius: 4, weight: 2
                     });
                     capaRutas.addLayer(puntito);
                 }
             }
 
-            // Dibujamos la línea en el mapa con el color que nos pasó Java
-            var linea = L.polyline(puntosLeaflet, {
-                color: colorRuta,
-                weight: 5,     // Grosor de la línea
-                opacity: 0.8   // Un poco transparente para que se vean los nombres de las calles
+            // 2. MAGIA DE OSRM: Detectamos si es caminando o en colectivo
+            var perfil = (colorRuta === "#edb900") ? "foot" : "driving";
+            // Armamos la URL para pedirle la ruta a la API pública de OSRM
+            var osrmUrl = "https://router.project-osrm.org/route/v1/" + perfil + "/" + osrmCoords.join(";") + "?overview=full&geometries=geojson";
+
+            // 3. Consultamos a la API
+            fetch(osrmUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.routes && data.routes.length > 0) {
+                        // Si OSRM nos devuelve la geometría de la calle, la dibujamos
+                        var rutaReal = L.geoJSON(data.routes[0].geometry, {
+                            style: function() {
+                                return {
+                                    color: colorRuta,
+                                    weight: 5,
+                                    opacity: 0.8,
+                                    dashArray: (colorRuta === "#edb900") ? '10, 10' : ''
+                                };
+                            }
+                        });
+                        capaRutas.addLayer(rutaReal);
+                        map.fitBounds(rutaReal.getBounds(), {padding: [30, 30]});
+                    } else {
+                        dibujarRectaFallback(puntosLeaflet, colorRuta);
+                    }
+                })
+                .catch(error => {
+                    // Si falla el internet o la API, dibujamos la línea recta chueca de emergencia
+                    console.log("OSRM falló, dibujando recta...", error);
+                    dibujarRectaFallback(puntosLeaflet, colorRuta);
+                }
+            );
+        }
+
+        // Función de emergencia por si no hay internet (dibuja la línea recta clásica)
+        function dibujarRectaFallback(puntos, color) {
+            var linea = L.polyline(puntos, {
+                color: color,
+                weight: 5,
+                opacity: 0.8,
+                lineJoin: 'round',
+                dashArray: (color === "#edb900") ? '10, 10' : ''
             });
-
-            // Si es un tramo "Caminando" (Amarillo), la hacemos punteada
-            if (colorRuta === "#edb900") {
-                linea.setStyle({ dashArray: '10, 10' });
-            }
-
-            // Agregamos la línea al mapa y centramos la vista para que se vea entera
             capaRutas.addLayer(linea);
             map.fitBounds(linea.getBounds());
         }

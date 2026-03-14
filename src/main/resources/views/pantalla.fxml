@@ -16,7 +16,7 @@
             <children>
                 <VBox alignment="TOP_CENTER" layoutX="5.0" layoutY="2.0" prefHeight="684.0" prefWidth="348.0" spacing="15.0" AnchorPane.bottomAnchor="12.0" AnchorPane.leftAnchor="5.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="2.0">
                     <children>
-                        <Label style="-fx-font-size: 24px; -fx-font-weight: bold;" text="Sistema de Colectivos" />
+                        <Label fx:id="nombreApp" style="-fx-font-size: 24px; -fx-font-weight: bold;" text="Sistema de Colectivos" />
       
                         <VBox prefHeight="257.0" prefWidth="388.0" spacing="10.0">
                             <children>

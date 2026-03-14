@@ -17,12 +17,11 @@ public class ControladorMapa {
 
     /**
      * Constructor del controlador del mapa. Recibe el WebView que se usará para mostrar el mapa.
-     * @param mapaWebView
+     * @param mapaWebView El WebView que se usará para mostrar el mapa. Este WebView debe estar definido en el archivo
+     * FXML y se inyectará en este controlador.
      */
     public ControladorMapa(WebView mapaWebView) {
         this.mapaWebView = mapaWebView;
-        // Cargar el archivo HTML del mapa al WebView
-        //this.mapaWebView.getEngine().load(getClass().getResource("resources/mapa.html").toExternalForm());
         try {
             String urlMapa = getClass().getResource("/mapa.html").toExternalForm();
             this.mapaWebView.getEngine().load(urlMapa);
@@ -34,12 +33,12 @@ public class ControladorMapa {
 
     /**
      * Llamamos a la funcion JavaScript para limpiar las rutas dibujadas en el mapa. Esta función debe estar definida
-     * en el archivo HTML del mapa.
+     * en el archivo HTML del mapa. Se llama a la funcion JavaScript "limpiarMapaDesdeJava" que se encarga de limpiar el
+     * mapa de cualquier ruta dibujada previamente.
      */
     public void limpiarRutas() {
         Platform.runLater(() -> {
             try {
-                // Llamamos a la función JavaScript "limpiarRutas" que debe estar definida en el mapa.html
                 this.mapaWebView.getEngine().executeScript("limpiarMapaDesdeJava()");
             } catch (Exception e) {
                 System.err.println("Error al ejecutar la función JavaScript limpiarRutas: " + e.getMessage());
@@ -49,13 +48,13 @@ public class ControladorMapa {
 
     /**
      * Llamamos a la función JavaScript para dibujar las rutas en el mapa.
+     * Llamamos a funciones javascript que deben estar definidas en el archivo HTML del mapa, pasando los datos de la
+     * ruta como argumento.
      * @param datosRuta Los datos de la ruta que se deben dibujar, en el formato que tu función JavaScript espera.
      */
     public void dibujarRutas(String datosRuta) {
         Platform.runLater(() -> {
             try {
-                // Llamamos a la función JavaScript "dibujarRutas" que debe estar definida en el mapa.html
-                // Pasamos los datos de la ruta como argumento a la función JavaScript
                 this.mapaWebView.getEngine().executeScript("dibujarRutaDesdeJava('" + datosRuta + "')");
             } catch (Exception e) {
                 System.err.println("Error al ejecutar la función JavaScript dibujarRutas: " + e.getMessage());

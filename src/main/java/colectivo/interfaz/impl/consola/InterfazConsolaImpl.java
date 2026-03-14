@@ -46,33 +46,28 @@ public class InterfazConsolaImpl implements Interfaz {
      */
     @Override
     public void iniciar() {
-        // 1. Verificación de seguridad
+
         if (coordinadorApp == null) {
             System.err.println("Error: Coordinador no inyectado en la interfaz.");
             return;
         }
 
-        // 2. Título (Esto debería aparecer en tu consola)
         System.out.println("\n*****************************************");
         System.out.println("   " + coordinadorApp.getConfiguracion().getTexto("app.titulo"));
         System.out.println("*****************************************\n");
 
-        // 3. El Bucle Principal (Esto evita que la app se cierre)
         boolean salir = false;
         while (!salir) {
             try {
-                // Obtenemos las paradas del coordinador
                 List<Parada> lista = coordinadorApp.getListaParadas();
                 Map<Integer, Parada> mapa = new HashMap<>();
                 lista.forEach(p -> mapa.put(p.getCodigo(), p));
 
-                // Pedir datos
                 Parada origen = ingresarParadaOrigen(mapa);
                 Parada destino = ingresarParadaDestino(mapa);
                 int dia = ingresarDiaSemana();
                 LocalTime hora = ingresarHoraDeLlegada();
 
-                // Calcular y mostrar
                 coordinadorApp.ejecutarCalculo(origen, destino, dia, hora.toString());
                 resultado(coordinadorApp.getRecorridoSolucion(), origen, destino, dia, hora);
 
@@ -87,12 +82,12 @@ public class InterfazConsolaImpl implements Interfaz {
             }
         }
         System.out.println("Aplicación finalizada.");
-
     }
 
     /**
      * Inicializamos el constructor de la aplicacion.
-     * @param coordinadorApp
+     * @param coordinadorApp El coordinador de la aplicación que se le pasa a esta interfaz para que pueda interactuar
+     * con el resto de la arquitectura.
      */
     @Override
     public void setCoordinadorApp(CoordinadorApp coordinadorApp) {
@@ -107,7 +102,6 @@ public class InterfazConsolaImpl implements Interfaz {
      */
     public Parada ingresarParadaOrigen(Map<Integer, Parada> paradas) {
         System.out.println("===SELECCION DE PARADA DE ORIGEN===");
-        //mostrarParadasDisponibles(paradas);
 
         while (true) {
             System.out.println("Ingrese el codigo de la parada de origen: ");
@@ -130,7 +124,6 @@ public class InterfazConsolaImpl implements Interfaz {
      */
     public Parada ingresarParadaDestino(Map<Integer, Parada> paradas) {
         System.out.println("===SELECCION DE PARADA DE DESTINO===");
-        //mostrarParadasDisponibles(paradas);
 
         while (true) {
             System.out.println("Ingrese el codigo de la parada de destino: ");
@@ -214,19 +207,16 @@ public class InterfazConsolaImpl implements Interfaz {
 
                 System.out.println("Hora de salida: " + reloj.format(formato));
 
-                // Usamos nuestra nueva clase para avanzar el reloj
                 reloj = Tiempo.sumarSegundos(reloj, r.getDuracion());
 
                 System.out.println("Hora de llegada: " + reloj.format(formato));
 
-                // Usamos la clase para formatear la duración
                 System.out.println("Duración: " + Tiempo.formatearDuracionTramo(r.getDuracion()) + " min");
                 System.out.println("--------------------------");
 
                 duracionTotalSegundos += r.getDuracion();
             }
 
-            // Formateamos el tiempo total usando la clase
             String tiempoTotal = Tiempo.formatearTiempoTotal(duracionTotalSegundos);
 
             System.out.println(">> TIEMPO TOTAL DE VIAJE: " + tiempoTotal + " hs <<");

@@ -37,7 +37,6 @@ public class ConexionBD {
                 String pwd = rb.getString("pwd");
                 String schema = rb.getString("schema");
                 Class.forName(driver);
-                //Class.forName("\"org.postgresql.Driver\"");
                 con = DriverManager.getConnection(url, usr, pwd);
                 Statement statement = con.createStatement();
                 try {

@@ -9,43 +9,50 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+/**
+ * Esta clase es la implementación de tu interfaz gráfica usando JavaFX.
+ * Aquí es donde se inicia JavaFX y se carga tu archivo visual (FXML).
+ * Además, es donde se inyecta el coordinador (la "Cocina") en el controlador de la pantalla.
+ */
 public class InterfazJavaFXImpl extends Application implements Interfaz, Coordinable {
-    // Variable estática para guardar el coordinador y usarlo en JavaFX
+
+    /**
+     * Variable estática para guardar el coordinador y usarlo en JavaFX.
+     */
     private static CoordinadorApp coordinadorApp;
 
-    // --- MÉTODOS DE TU ARQUITECTURA ---
-
+    /**
+     * Método para inyectar el coordinador desde la aplicación principal.
+     * @param coordinador El coordinador que se inyectará en la interfaz gráfica.
+     */
     @Override
     public void setCoordinadorApp(CoordinadorApp coordinador) {
-        // Guardamos el coordinador en la estática antes de lanzar la ventana
         InterfazJavaFXImpl.coordinadorApp = coordinador;
     }
 
+    /**
+     * Método para iniciar la interfaz gráfica. Aquí se lanza la aplicación JavaFX.
+     */
     @Override
     public void iniciar() {
-        // Este método es el que llama tu Coordinador. Aquí "encendemos" JavaFX.
         System.out.println("Iniciando entorno gráfico JavaFX...");
         Application.launch(InterfazJavaFXImpl.class);
     }
 
-    // --- MÉTODOS PROPIOS DE JAVAFX ---
-
+    /**
+     * Método que se llama al iniciar la aplicación JavaFX. Aquí se carga el archivo FXML y se muestra la ventana principal.
+     * @param escenarioPrincipal El escenario principal de JavaFX donde se mostrará la interfaz gráfica.
+     */
     @Override
     public void start(Stage escenarioPrincipal) {
         try {
-            // 1. Cargamos el archivo visual (el Local)
             FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/views/pantalla.fxml"));
             Scene escena = new Scene(fxmlLoader.load());
 
-            // --- ESTA ES LA MODIFICACIÓN CLAVE ---
-            // 2. Le pedimos a JavaFX que nos dé al "Gerente" que acaba de crear
             ControladorPantallaPrincipal controlador = fxmlLoader.getController();
 
-            // 3. Le inyectamos la "Cocina" (tu coordinador)
-            controlador.setCoordinadorApp(coordinadorApp); // Asegurate de usar tu variable acá
-            // -------------------------------------
+            controlador.setCoordinadorApp(coordinadorApp);
 
-            // 4. Mostramos la ventana
             escenarioPrincipal.setTitle("Sistema de Colectivos");
             escenarioPrincipal.setScene(escena);
             escenarioPrincipal.show();

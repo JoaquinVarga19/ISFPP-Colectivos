@@ -94,23 +94,17 @@ public class CoordinadorApp implements ICoordinadorApp{
         try {
             LOGGER.info("Iniciando la secuencia de apertura de la aplicación...");
 
-            // 1. Inicializar la configuración global (Carga config.properties e idiomas)
             this.configuracion = new ConfiguracionGlobal();
 
-            // 2. Inicializar los servicios a través de la Factory
             inicializarServicios();
 
-            // 3. Realizar la carga única de datos (Paradas, Tramos, Líneas) a los Mapas
             cargarDatosUnaVez();
 
             this.calculo = new Calculo(new CalculoDijkstra());
 
-            // 4. Inicializar la lista de soluciones
             this.recorridoSolucion = new ArrayList<>();
 
-            // 5. Configurar e iniciar la interfaz (Consola o JavaFX)
             if (this.interfazService != null) {
-                // Si la interfaz necesita al coordinador, se lo pasamos
                 if (this.interfazService instanceof Coordinable) {
                     ((Coordinable) this.interfazService).setCoordinadorApp(this);
                 }
@@ -120,7 +114,6 @@ public class CoordinadorApp implements ICoordinadorApp{
 
         } catch (Exception e) {
             LOGGER.fatal("Error crítico durante la inicialización de la aplicación: " + e.getMessage());
-            // En una aplicación real, aquí podrías mostrar un diálogo de error antes de salir
             System.exit(1);
         }
     }
@@ -168,7 +161,7 @@ public class CoordinadorApp implements ICoordinadorApp{
     /**
      * Devuelve la configuración global de la aplicación, que incluye los textos traducidos y las propiedades cargadas
      * desde el archivo de configuración.
-     * @return
+     * @return ConfiguracionGlobal
      */
     @Override
     public ConfiguracionGlobal getConfiguracion() {
@@ -178,8 +171,8 @@ public class CoordinadorApp implements ICoordinadorApp{
     /**
      * Busca una parada por ID o por nombre, dependiendo de lo que el usuario haya ingresado. Si el usuario
      * ingresa un número, se busca por ID. Si ingresa texto, se busca por nombre.
-     * @param entrada
-     * @return
+     * @param entrada La entrada del usuario, que puede ser un ID numérico o un nombre de parada.
+     * @return La parada encontrada, o null si no se encuentra ninguna parada que coincida con la entrada.
      */
     @Override
     public Parada buscarParada(String entrada) {
@@ -188,13 +181,11 @@ public class CoordinadorApp implements ICoordinadorApp{
             LOGGER.warn("Entrada vacía para buscar parada.");
             return null;
         }
-        // El mapaParadas ya se llenó en cargarDatosUnavez() con el archivo de config.properties
+
         try {
-            // Intentar parsear la entrada como un número (ID)
             int id = Integer.parseInt(entrada.trim());
             return mapaParadas.get(id);
         } catch (NumberFormatException e) {
-            // No es un número, buscar por nombre
             return mapaParadas.values().stream()
                     .filter(parada -> parada.getDireccion().equalsIgnoreCase(entrada.trim()))
                     .findFirst()
@@ -206,8 +197,8 @@ public class CoordinadorApp implements ICoordinadorApp{
      * Parsea el día ingresado por el usuario. Si es un número, se devuelve ese número. Si es un texto,
      * se convierte a un número según el día de la semana (Lunes=1, Martes=2, ..., Domingo/feriado=7). Si no se
      * reconoce el formato, se devuelve -1.
-     * @param entrada
-     * @return
+     * @param entrada La entrada del usuario, que puede ser un número del 1 al 7 o el nombre de un día de la semana.
+     * @return El número del día de la semana (1-7) o -1 si la entrada no es válida.
      */
     @Override
     public int parsearDia(String entrada) {
@@ -215,20 +206,18 @@ public class CoordinadorApp implements ICoordinadorApp{
             LOGGER.warn("Entrada vacía para parsear día.");
             return -1;
         }
-        // Convertimos la entrada a minúsculas para facilitar la comparación
         String dia = entrada.trim().toLowerCase();
-        //Verificamos que el dia ingresado matchee con 1 a 7
         if (dia.matches("[1-7]")) {
             return Integer.parseInt(dia);
         }
-        // Comparación con las claves del archivo de idiomas cargado
-        if (dia.equals(configuracion.getTexto("cbx.day.monday").toLowerCase())) return 1;
-        if (dia.equals(configuracion.getTexto("cbx.day.tuesday").toLowerCase())) return 2;
-        if (dia.equals(configuracion.getTexto("cbx.day.wednesday").toLowerCase())) return 3;
-        if (dia.equals(configuracion.getTexto("cbx.day.thursday").toLowerCase())) return 4;
-        if (dia.equals(configuracion.getTexto("cbx.day.friday").toLowerCase())) return 5;
-        if (dia.equals(configuracion.getTexto("cbx.day.saturday").toLowerCase())) return 6;
-        if (dia.equals(configuracion.getTexto("cbx.day.sunday").toLowerCase())) return 7;
+
+        if (dia.equals(configuracion.getTexto("dia.1").toLowerCase())) return 1;
+        if (dia.equals(configuracion.getTexto("dia.2").toLowerCase())) return 2;
+        if (dia.equals(configuracion.getTexto("dia.3").toLowerCase())) return 3;
+        if (dia.equals(configuracion.getTexto("dia.4").toLowerCase())) return 4;
+        if (dia.equals(configuracion.getTexto("dia.5").toLowerCase())) return 5;
+        if (dia.equals(configuracion.getTexto("dia.6").toLowerCase())) return 6;
+        if (dia.equals(configuracion.getTexto("dia.7").toLowerCase())) return 7;
 
         return -1;
     }
@@ -236,8 +225,8 @@ public class CoordinadorApp implements ICoordinadorApp{
     /**
      * Valida que la hora ingresada por el usuario tenga el formato correcto (HH:mm) y que sea una hora válida
      * (00:00 a 23:59). Si la hora es válida, devuelve true. Si no es válida, devuelve false.
-     * @param hora
-     * @return
+     * @param hora La hora ingresada por el usuario, que debe tener el formato HH:mm.
+     * @return true si la hora es válida, false si no es válida.
      */
     @Override
     public boolean validarHora(String hora) {
@@ -251,10 +240,10 @@ public class CoordinadorApp implements ICoordinadorApp{
     /**
      * Ejecuta el cálculo del recorrido utilizando el servicio de cálculo. Valida que los parámetros no sean nulos o inválidos
      * antes de ejecutar el calculo.
-     * @param origen
-     * @param destino
-     * @param dia
-     * @param hora
+     * @param origen La parada de origen seleccionada por el usuario.
+     * @param destino La parada de destino seleccionada por el usuario.
+     * @param dia El día de la semana seleccionado por el usuario, representado como un número del 1 al 7.
+     * @param hora La hora de inicio del recorrido.
      */
     @Override
     public void ejecutarCalculo(Parada origen, Parada destino, int dia, String hora) {
@@ -264,7 +253,6 @@ public class CoordinadorApp implements ICoordinadorApp{
         }
         try {
             LocalTime hs = LocalTime.parse(hora);
-            //Aqui guardaremos todas las soluciones que encontremos
             List<List<Recorrido>> todasLasSoluciones = new ArrayList<>();
             LOGGER.info("Caminando");
             this.calculo.setEstrategia(new CalculoCaminando());
@@ -273,9 +261,7 @@ public class CoordinadorApp implements ICoordinadorApp{
                 todasLasSoluciones.addAll(rutasCaminando);
             }
 
-            //Si las paradas son distintas, tambien buscamos en colectivo
             if (origen.getCodigo() != destino.getCodigo() ) {
-                //Comparten la misma linea -> vamos directo sin transbordo
                 if (compartenLinea(origen, destino)) {
                     LOGGER.info("Directo (sin transbordo)");
                     this.calculo.setEstrategia(new CalculoDirecto());
@@ -286,7 +272,6 @@ public class CoordinadorApp implements ICoordinadorApp{
                 }
             }
 
-            // Siempre buscamos también con Dijkstra para ver si hay una ruta más óptima o dar la alternativa
             LOGGER.info("Con transbordo (Dijkstra)");
             this.calculo.setEstrategia(new CalculoDijkstra());
             List<List<Recorrido>> rutasConTransbordo = this.calculo.ejecutarCalculo(origen, destino, dia, hs, this.mapaTramos);
@@ -295,7 +280,6 @@ public class CoordinadorApp implements ICoordinadorApp{
                 todasLasSoluciones.addAll(rutasConTransbordo);
             }
 
-            // Finalmente, guardamos todas las opciones combinadas para que la interfaz las muestre
             this.recorridoSolucion = todasLasSoluciones;
 
         } catch (Exception e) {
@@ -307,7 +291,7 @@ public class CoordinadorApp implements ICoordinadorApp{
     /**
      * Devuelve la lista de paradas para mostrar en la UI, esta lista se obtiene del mapaParadas que se cargó al inicio
      * de la aplicación. Si el mapaParadas está vacío, devuelve una lista vacía.
-     * @return
+     * @return Lista de paradas para mostrar en la UI.
      */
     @Override
     public List<Parada> getListaParadas() {
@@ -319,8 +303,8 @@ public class CoordinadorApp implements ICoordinadorApp{
     }
 
     /**
-     * Devuelve la lista de soluciones de recorrido que se obtuvo al ejecutar el cálculo. E
-     * @return
+     * Devuelve la lista de soluciones de recorrido que se obtuvo al ejecutar el cálculo.
+     * @return Lista de soluciones de recorrido para mostrar en la UI, o null si no se ha ejecutado ningún cálculo aún.
      */
     @Override
     public List<List<Recorrido>> getRecorridoSolucion() {
@@ -331,8 +315,9 @@ public class CoordinadorApp implements ICoordinadorApp{
      * Cambia el idioma de la aplicación utilizando el método cambiarIdioma de la clase ConfiguracionGlobal.
      * Este método se llama cuando el usuario selecciona un nuevo idioma en la UI.
      * El método actualizará el ResourceBundle con el nuevo idioma y notificará a la UI para que actualice los
-     * textos mostrados
-     * @param codigoIdioma
+     * textos mostrados en pantalla.
+     * @param codigoIdioma El código del idioma seleccionado por el usuario (por ejemplo, "es" para español,
+     *"en" para inglés, etc.).
      */
     @Override
     public void cambiarIdioma(String codigoIdioma) {
@@ -348,15 +333,15 @@ public class CoordinadorApp implements ICoordinadorApp{
     @Override
     public void limpiarSistema() {
         this.recorridoSolucion = null;
-        // Si hay otros estados o variables que deban ser reseteados, se pueden agregar aquí.
         LOGGER.info("Sistema limpiado. Listo para una nueva búsqueda.");
     }
 
     /**
      * Verifica si existe alguna linea de colectivo que pase tanto por origen como destino.
-     * @param origen
-     * @param destino
-     * @return
+     * @param origen La parada de origen seleccionada por el usuario.
+     * @param destino La parada de destino seleccionada por el usuario.
+     * @return true si existe al menos una linea que pase por ambas paradas, false si no existe ninguna linea que las
+     * conecte directamente.
      */
     private boolean compartenLinea(Parada origen, Parada destino) {
         if (origen.getLineas() != null && destino.getLineas() != null) {
