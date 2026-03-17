@@ -53,7 +53,7 @@ public class InterfazConsolaImpl implements Interfaz {
         }
 
         System.out.println("\n*****************************************");
-        System.out.println("   " + coordinadorApp.getConfiguracion().getTexto("app.titulo"));
+        System.out.println("   " + coordinadorApp.getConfiguracion().getTexto("nombre.aplicacion"));
         System.out.println("*****************************************\n");
 
         boolean salir = false;
